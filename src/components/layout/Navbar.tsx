@@ -19,13 +19,11 @@ import SearchBox from '@/components/SearchBox';
 interface HeaderProps {
   cartCount?: number;
   favoriteCount?: number;
-  onOpenLogin?: () => void;
 }
 
 export default function Navbar({
   cartCount = 1,
   favoriteCount = 1,
-  onOpenLogin,
 }: HeaderProps) {
   const [isCampaignsOpen, setIsCampaignsOpen] = useState(false);
   const [active, setActive] = useState('/');
@@ -41,7 +39,8 @@ export default function Navbar({
   const navLinkBefore = [
     { title: 'الرئيسية', href: '/' },
     { title: 'المنتجات', href: '/product' },
-    { title: 'التسويق', href: '/#marketing' },
+    { title: 'التسويق', href: '/marketing' },
+    { title: 'العقارات', href: '/#realstate' },
   ];
 
   const navLinkAfter = [
@@ -75,7 +74,7 @@ export default function Navbar({
           <div className="flex items-center gap-1 sm:gap-3 md:gap-5 text-white text-xs md:text-sm shrink-0">
             {/* Cart */}
             <Link
-              href='/cart'
+              href='/#cart'
               type="button"
               aria-label="سلة المشتريات"
               className="relative flex items-center gap-2 text-slate-200 hover:text-gold-primary transition-colors cursor-pointer p-2 rounded-lg hover:bg-white/5"
@@ -111,17 +110,17 @@ export default function Navbar({
             <span className="text-slate-600 hidden md:inline">|</span>
 
             {/* Login */}
-            <button
+            <Link
               type="button"
+              href={"/login"}
               aria-label="تسجيل الدخول / إنشاء حساب"
-              onClick={onOpenLogin}
               className="flex items-center gap-2 text-slate-200 hover:text-gold-primary transition-colors cursor-pointer p-2 rounded-lg hover:bg-white/5"
             >
               <span className="hidden md:inline font-semibold whitespace-nowrap">
                 تسجيل الدخول / إنشاء حساب
               </span>
               <User className="w-5 h-5 md:w-4 md:h-4" />
-            </button>
+            </Link>
 
             {/* Mobile Menu Button */}
             <button

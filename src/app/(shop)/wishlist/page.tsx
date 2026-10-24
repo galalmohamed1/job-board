@@ -159,14 +159,7 @@ export default function WishlistPage() {
     setIsLoaded(true);
   }, []);
 
-  const saveItems = (newItems: Product[]) => {
-    setItems(newItems);
-    try {
-      localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(newItems));
-    } catch (e) {
-      console.error(e);
-    }
-  };
+
 
   const showToast = (message: string) => {
     setNotification(message);
@@ -178,21 +171,20 @@ export default function WishlistPage() {
   // Remove single item
   const handleRemove = (productId: string, title: string) => {
     const updated = items.filter((p) => p._id !== productId);
-    saveItems(updated);
+
     showToast(`تمت إزالة "${title.slice(0, 20)}..." من المفضلة`);
   };
 
   // Clear all items (switches to Empty State)
   const handleClearAll = () => {
     if (window.confirm('هل أنت متأكد من رغبتك في تفريغ قائمة المفضلة بالكامل؟')) {
-      saveItems([]);
+
       showToast('تم إفراغ قائمة المفضلة بنجاح');
     }
   };
 
   // Reset demo items (for testing populated state)
   const handleResetDemo = () => {
-    saveItems(INITIAL_DEMO_PRODUCTS);
     showToast('تمت استعادة منتجات المفضلة التجريبية');
   };
 
