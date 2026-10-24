@@ -1,5 +1,6 @@
 import { CategoryCardData } from "@/types/category";
-import { ArrowLeft, Briefcase, ChevronDown, Handshake, Megaphone, ShoppingCart, Target } from "lucide-react";
+import { ArrowLeft, Briefcase, ChevronDown, Handshake, Home, HomeIcon, Megaphone, ShoppingCart, Target, TrendingUp, Users, Vote } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 export const CATEGORIES_DATA: CategoryCardData[] = [
   {
@@ -26,6 +27,14 @@ export const CATEGORIES_DATA: CategoryCardData[] = [
     iconType: 'campaigns',
     ctaText: 'اكتشف المزيد',
     hasDropdown: true,
+  },
+  {
+    id: 'realstate',
+    title: 'عقارات',
+    description: 'عقارك مع حورس',
+    image: '/img/realstate.jpg',
+    iconType: 'realstate',
+    ctaText: 'اكتشف المزيد',
   },
   {
     id: 'marketing',
@@ -59,14 +68,22 @@ function CategoriesSection() {
         return <Briefcase className="w-5 h-5 text-ink-gold-light" />;
       case 'partners':
         return <Handshake className="w-5 h-5 text-ink-gold-light" />;
+      case 'realstate':
+        return <HomeIcon className="w-5 h-5 text-ink-gold-light" />;
       default:
         return <ShoppingCart className="w-5 h-5 text-ink-gold-light" />;
     }
   };
+  const campaignItems = [
+    { title: 'الحملات الانتخابية', icon: Vote, href: '/#elections' },
+    { title: 'الحملات الإعلانية', icon: Megaphone, href: '/#advertising' },
+    { title: 'الحملات التسويقية', icon: TrendingUp, href: '/#marketing-camp' },
+    { title: 'حملات العلاقات والتوعية', icon: Users, href: '/#awareness' },
+  ];
   return (
     <section className="py-12 bg-white font-['Cairo']">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
                 {CATEGORIES_DATA.map((cat) => {
             const isCampaign = cat.id === 'campaigns';
             const isDropdownActive = activeDropdownId === cat.id;
@@ -132,22 +149,21 @@ function CategoriesSection() {
                     {/* Submenu for Campaigns card */}
                     {isCampaign && isDropdownActive && (
                       <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 p-2 z-30 text-right">
-                        {/* {campaignSubItems.map((sub, i) => {
-                          const SubIcon = sub.icon;
-                          return (
-                            <a
-                              key={i}
-                              href="#campaigns"
-                              onClick={() => setActiveDropdownId(null)}
-                              className="flex items-center gap-2 p-2 hover:bg-[#FDF8ED] rounded-lg text-xs font-semibold text-slate-800 transition-colors"
-                            >
-                              <span className="w-6 h-6 rounded-md bg-blue-50 text-[#1E3A8A] flex items-center justify-center shrink-0">
-                                <SubIcon className="w-3.5 h-3.5" />
-                              </span>
-                              <span>{sub.title}</span>
-                            </a>
-                          );
-                        })} */}
+                        {campaignItems.map((item, index) => {
+                        const Icon = item.icon;
+                        return (
+                          <Link
+                            key={index}
+                            href={item.href}
+                            className="flex items-center gap-3 px-4 py-2.5 text-xs lg:text-sm font-semibold text-navy-surface hover:bg-gold-soft-bg hover:text-gold-primary transition-colors"
+                          >
+                            <span className="w-7 h-7 rounded-lg bg-blue-50 text-[#1E3A8A] flex items-center justify-center shrink-0">
+                              <Icon className="w-4 h-4" />
+                            </span>
+                            <span>{item.title}</span>
+                          </Link>
+                        );
+                      })}
                       </div>
                     )}
                   </div>

@@ -57,7 +57,7 @@ export default function Banner() {
   }, [api]);
 
   return (
-    <section dir="rtl" className="relative w-full overflow-hidden bg-[#0B1325]">
+    <section className="relative w-full overflow-hidden bg-[#0B1325]">
       <Carousel
         setApi={setApi}
         plugins={[plugin.current]}
@@ -101,11 +101,11 @@ export default function Banner() {
                       </span>
                     </h1>
 
-                    <p className="text-base sm:text-lg md:text-xl text-slate-100 font-semibold mb-6 leading-relaxed max-w-xl font-['Cairo']">
+                    <p className="text-base sm:text-lg md:text-xl text-slate-100 font-semibold mb-4 leading-relaxed max-w-xl font-['Cairo']">
                       {slide.subtitle}
                     </p>
 
-                    <div className="flex flex-wrap items-center justify-end gap-3 md:gap-4 mb-8 text-xs sm:text-sm text-white font-medium">
+                    <div className="flex flex-wrap items-center gap-3 md:gap-4 mb-12 text-xs sm:text-sm text-white font-medium">
                       {features.map((f) => {
                         const Icon = f.icon;
                         return (

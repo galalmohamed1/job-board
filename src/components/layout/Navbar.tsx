@@ -11,19 +11,20 @@ import {
   ChevronDown,
   Menu,
   X,
+  Heart,
 } from 'lucide-react';
 import HorusLogo from '@/components/logo/HorusLogo';
 import SearchBox from '@/components/SearchBox';
 
 interface HeaderProps {
   cartCount?: number;
-  onOpenCart?: () => void;
+  favoriteCount?: number;
   onOpenLogin?: () => void;
 }
 
 export default function Navbar({
-  cartCount = 0,
-  onOpenCart,
+  cartCount = 1,
+  favoriteCount = 1,
   onOpenLogin,
 }: HeaderProps) {
   const [isCampaignsOpen, setIsCampaignsOpen] = useState(false);
@@ -39,7 +40,7 @@ export default function Navbar({
 
   const navLinkBefore = [
     { title: 'الرئيسية', href: '/' },
-    { title: 'المنتجات', href: '/#products' },
+    { title: 'المنتجات', href: '/product' },
     { title: 'التسويق', href: '/#marketing' },
   ];
 
@@ -52,7 +53,7 @@ export default function Navbar({
   ];
 
   return (
-    <header dir="rtl" className="w-full relative z-50">
+    <header className="w-full relative z-50">
       {/* 1. Main Top Bar */}
       <div className="w-full border-b border-navy-border bg-navy-surface">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4">
@@ -73,10 +74,10 @@ export default function Navbar({
           {/* Left: User Actions (Cart & Login) */}
           <div className="flex items-center gap-1 sm:gap-3 md:gap-5 text-white text-xs md:text-sm shrink-0">
             {/* Cart */}
-            <button
+            <Link
+              href='/cart'
               type="button"
               aria-label="سلة المشتريات"
-              onClick={onOpenCart}
               className="relative flex items-center gap-2 text-slate-200 hover:text-gold-primary transition-colors cursor-pointer p-2 rounded-lg hover:bg-white/5"
             >
               <span className="hidden md:inline font-semibold">سلة المشتريات</span>
@@ -88,8 +89,25 @@ export default function Navbar({
                   </span>
                 )}
               </div>
-            </button>
+            </Link>
 
+            <span className="text-slate-600 hidden md:inline">|</span>
+            <Link
+              href='/wishlist'
+              type="button"
+              aria-label="المفضله"
+              className="relative flex items-center gap-2 text-slate-200 hover:text-gold-primary transition-colors cursor-pointer p-2 rounded-lg hover:bg-white/5"
+            >
+              <span className="hidden md:inline font-semibold"> المفضله</span>
+              <div className="relative">
+                <Heart className="w-5 h-5" />
+                {favoriteCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-badge-red text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                    {favoriteCount}
+                  </span>
+                )}
+              </div>
+            </Link>
             <span className="text-slate-600 hidden md:inline">|</span>
 
             {/* Login */}
@@ -161,7 +179,6 @@ export default function Navbar({
                 {isCampaignsOpen && (
                   <div
                     className="absolute top-full right-0 mt-3 w-56 bg-white rounded-xl shadow-2xl border border-slate-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-150"
-                    style={{ direction: 'rtl' }}
                   >
                     <div className="absolute -top-2 right-6 w-4 h-4 bg-white rotate-45 border-t border-r border-slate-100"></div>
 

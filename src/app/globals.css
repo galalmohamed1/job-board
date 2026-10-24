@@ -31,11 +31,12 @@
   --neutral-border-light: #EDF2F7; /* حدود خفيفة للغاية */
 
   /* ===== Typography Colors (ألوان النصوص) ===== */
-  --text-primary: #0F172A;      /* النص الرئيسي */
+  --text-primary: #17223E;      /* النص الرئيسي */
   --text-secondary: #475569;    /* النصوص الوصفية الفرعية */
   --text-muted: #94A3B8;        /* النصوص الهادئة والتقييمات */
   --text-light: #F8FAFC;        /* النصوص البيضاء على الخلفيات الداكنة */
   --text-gold: #D49B35;         /* النصوص الذهبية للأرقام والأسعار */
+  --text-gold-high-light:#C99A54;
   --text-gold-light: #E5A93C;   /* النصوص الذهبية البراقة */
   --text-old-price: #94A3B8;    /* السعر القديم المشطوب */
 

@@ -3,7 +3,8 @@ export interface CategoryCardData {
   title: string;
   description: string;
   image: string;
-  iconType: "store" | "marketing" | "campaigns" | "legal" | "partners";
+  iconType:
+    "store" | "marketing" | "campaigns" | "legal" | "partners" | "realstate";
   ctaText: string;
   hasDropdown?: boolean;
 }
