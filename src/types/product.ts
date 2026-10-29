@@ -26,13 +26,15 @@ export interface Product {
   title: string;
   slug: string;
   description: string;
+  discription?: string;
   price: number;
   discountPrice?: number;
   images: ProductImage[];
+  image?: ProductImage[];
   videos?: string[];
   category: Category | null;
-  subcategory: SubCategory[];
-  detailsSubCategory: DetailsSubCategory[];
+  subcategory: SubCategory[] | any;
+  detailsSubCategory?: DetailsSubCategory[];
   averageRating: number;
   numReviews: number;
   sizes: string[];
@@ -43,6 +45,7 @@ export interface Product {
   stock: number;
   createdAt: string;
   updatedAt: string;
+  __v?: number;
 }
 
 export interface ProductsResponse {

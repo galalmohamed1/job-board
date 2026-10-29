@@ -12,8 +12,9 @@ export interface CategoryCardData {
 export interface Category {
   _id: string;
   title: string;
-  description: string;
-  image: { public_id: string; secure_url: string };
+  name?: string;
+  description?: string;
+  image?: { public_id: string; secure_url: string } | string;
   slug: string;
 }
 
