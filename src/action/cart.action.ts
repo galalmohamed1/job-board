@@ -3,10 +3,7 @@
 import { getAccessToken } from "@/utilities/utilite";
 
 const getBaseUrl = () =>
-  (
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    "http://localhost:5000/api"
-  )
+  (process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-six.vercel.app/api")
     .trim()
     .replace(/;+$/, "")
     .replace(/\/api$/, "") + "/api";
@@ -77,7 +74,11 @@ export async function AddToCart(payload: {
   color?: string;
 }) {
   const token = await getAccessToken();
-  if (!token) return { success: false, message: "Please login to add items to your cart" };
+  if (!token)
+    return {
+      success: false,
+      message: "Please login to add items to your cart",
+    };
 
   try {
     const res = await fetch(`${getBaseUrl()}/cart`, {

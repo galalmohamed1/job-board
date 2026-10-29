@@ -35,6 +35,34 @@ export async function proxy(request: NextRequest) {
   // بيطابق كل الداشبوردات (/dashboard و /dashboard-accountant و /dashboard-warehouse)
   const isDashboardRoute = pathname.startsWith("/dashboard");
 
+  // حماية خاصة لمسار /dashboard-sales: متاح لدور sales فقط
+  const isSalesRoute =
+    pathname === "/dashboard-sales" || pathname.startsWith("/dashboard-sales/");
+  if (isSalesRoute) {
+    if (!isAuthenticated) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    if (role !== "sales") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // حماية خاصة لمسار /dashboard-salesmanger: متاح لدور salesManager و admin
+  const isSalesManagerRoute =
+    pathname === "/dashboard-salesmanger" ||
+    pathname.startsWith("/dashboard-salesmanger/");
+  if (isSalesManagerRoute) {
+    if (!isAuthenticated) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    const roleLower = role?.toLowerCase();
+    if (roleLower !== "salesmanager" && roleLower !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+    return NextResponse.next();
+  }
+
   // هل الموظف جوه الداشبورد بتاعه هو؟ (بدون ما /dashboard يطابق /dashboard-accountant)
   const isOwnDashboard =
     isStaff && (pathname === staffHome || pathname.startsWith(`${staffHome}/`));
@@ -44,17 +72,22 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/register") ||
     pathname.startsWith("/forget-password");
 
-  // 2. كل موظف يدخل على الداشبورد بتاعه فقط (أي مسار تاني يتحول له)
-  if (isStaff && !isOwnDashboard) {
+  // 2. الموظفون المحصورون في لوحة التحكم (الـ sales والـ salesManager يمكنهم استخدام الموقع كأي مستخدم عادي)
+  if (
+    isStaff &&
+    role !== "sales" &&
+    role?.toLowerCase() !== "salesmanager" &&
+    !isOwnDashboard
+  ) {
     return NextResponse.redirect(new URL(staffHome, request.url));
   }
 
-  // 3. حماية الـ Dashboard - للموظفين فقط
+  // 3. حماية باقي الـ Dashboards - للموظفين المخصصين فقط (يُمنع role === sales أو salesManager من دخول داشبورد الأدمن/المحاسب)
   if (isDashboardRoute) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    if (!isStaff) {
+    if (!isStaff || role === "sales" || role?.toLowerCase() === "salesmanager") {
       return NextResponse.redirect(new URL("/", request.url));
     }
     return NextResponse.next();

@@ -9,7 +9,9 @@ import {
   Tag,
   Layers,
   ListTree,
+  Users,
   UserPlus,
+  Wallet,
   ChevronRight,
   Menu,
   X,
@@ -17,6 +19,7 @@ import {
   Bell,
   Settings,
   ChevronLeft,
+  Ticket,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
@@ -31,6 +34,16 @@ const navItems = [
     label: 'المنتجات',
     href: '/dashboard/products',
     icon: Package,
+  },
+  {
+    label: 'كوبونات الخصم',
+    href: '/dashboard/coupons',
+    icon: Ticket,
+  },
+  {
+    label: 'المستخدمين',
+    href: '/dashboard/users',
+    icon: Users,
   },
   {
     label: 'الأقسام (Categories)',

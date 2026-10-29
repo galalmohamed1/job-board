@@ -9,9 +9,13 @@ import {
 
 const getBaseUrl = () => {
   const raw =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    "http://localhost:5000/api";
-  return raw.trim().replace(/;+$/, "").replace(/\/api$/, "") + "/api";
+    process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-six.vercel.app/api";
+  return (
+    raw
+      .trim()
+      .replace(/;+$/, "")
+      .replace(/\/api$/, "") + "/api"
+  );
 };
 
 // userRegister

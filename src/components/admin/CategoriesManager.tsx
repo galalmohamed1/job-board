@@ -34,8 +34,6 @@ export default function CategoriesManager() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-    const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN;
-
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -63,6 +61,7 @@ export default function CategoriesManager() {
     setDescription('');
     setImageBase64(null);
     setEditingCategory(null);
+    if (fileRef.current) fileRef.current.value = '';
   };
 
   const openEdit = (cat: Category) => {
@@ -93,7 +92,8 @@ export default function CategoriesManager() {
       const byteStr = atob(imageBase64.split(',')[1]);
       const bytes = new Uint8Array(byteStr.length);
       for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
-      fd.append('uploads', new Blob([bytes], { type: mime }), `category.${ext}`);
+      // الاسم "image" لازم يطابق upload.single("image") في الباك
+      fd.append('image', new Blob([bytes], { type: mime }), `category.${ext}`);
     }
     return fd;
   };
@@ -102,6 +102,14 @@ export default function CategoriesManager() {
     e.preventDefault();
     if (!title.trim()) {
       showToast('error', 'يرجى إدخال اسم القسم');
+      return;
+    }
+    if (!description.trim()) {
+      showToast('error', 'يرجى إدخال وصف القسم');
+      return;
+    }
+    if (!imageBase64) {
+      showToast('error', 'يرجى رفع صورة القسم');
       return;
     }
     startTransition(async () => {
@@ -154,6 +162,15 @@ export default function CategoriesManager() {
     'w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:border-[#D49B35] focus:ring-1 focus:ring-[#D49B35]/30 transition-colors placeholder:text-slate-400';
   const labelClass = 'block text-xs font-bold text-slate-600 mb-1.5';
 
+  // الصورة الحالية للقسم اللي بيتعدل (للمعاينة في فورم التعديل)
+  const currentImageUrl =
+    editingCategory &&
+    typeof editingCategory.image === 'object' &&
+    editingCategory.image &&
+    'secure_url' in editingCategory.image
+      ? editingCategory.image.secure_url
+      : '';
+
   // دالة عادية بترجع JSX (مش component) عشان الـ inputs ما تفقدش الفوكس
   const renderForm = (isEdit: boolean) => (
     <form
@@ -182,7 +199,7 @@ export default function CategoriesManager() {
           />
         </div>
         <div className="md:col-span-2">
-          <label className={labelClass}>وصف القسم</label>
+          <label className={labelClass}>وصف القسم *</label>
           <textarea
             className={`${inputClass} resize-none`}
             rows={3}
@@ -192,7 +209,7 @@ export default function CategoriesManager() {
           />
         </div>
         <div className="md:col-span-2">
-          <label className={labelClass}>صورة القسم</label>
+          <label className={labelClass}>صورة القسم {isEdit ? '(اختياري)' : '*'}</label>
           <div
             onClick={() => fileRef.current?.click()}
             className="border-2 border-dashed border-slate-200 hover:border-[#D49B35] rounded-xl p-6 text-center cursor-pointer transition-colors group"
@@ -202,8 +219,17 @@ export default function CategoriesManager() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={imageBase64} alt="" className="w-16 h-16 rounded-xl object-cover" />
                 <div className="text-right">
-                  <p className="text-sm font-bold text-slate-700">تم رفع الصورة</p>
+                  <p className="text-sm font-bold text-slate-700">تم اختيار الصورة</p>
                   <p className="text-xs text-slate-400 mt-1">انقر للتغيير</p>
+                </div>
+              </div>
+            ) : isEdit && currentImageUrl ? (
+              <div className="flex items-center justify-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={currentImageUrl} alt="" className="w-16 h-16 rounded-xl object-cover" />
+                <div className="text-right">
+                  <p className="text-sm font-bold text-slate-700">الصورة الحالية</p>
+                  <p className="text-xs text-slate-400 mt-1">انقر لاستبدالها</p>
                 </div>
               </div>
             ) : (
@@ -337,16 +363,16 @@ export default function CategoriesManager() {
                 >
                   <div className="h-32 bg-slate-200 overflow-hidden relative">
                     {typeof cat.image === 'object' && cat.image && 'secure_url' in cat.image && cat.image.secure_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                            src={`${API_ORIGIN}${cat.image.secure_url}`}
-                            alt={cat.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={cat.image.secure_url}
+                        alt={cat.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                     ) : (
-                    <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-full h-full flex items-center justify-center">
                         <ImageIcon className="w-8 h-8 text-slate-300" />
-                    </div>
+                      </div>
                     )}
                   </div>
                   <div className="p-3">

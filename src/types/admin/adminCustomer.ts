@@ -4,7 +4,8 @@ export interface AdminCustomer {
   fullName?: string;
   email: string;
   phoneNumber?: string;
-  role: "user" | "admin" | "accountant" | "warehouse";
+  phone?: string;
+  role: "user" | "admin" | "accountant" | "warehouse" | "sales" | "salesManager" | string;
   isVerified?: boolean;
   isActive?: boolean;
   isDeleted?: boolean;

@@ -87,6 +87,13 @@ const quickLinks = [
     color: 'from-rose-600 to-rose-700',
   },
   {
+    title: 'إدارة المستخدمين',
+    description: 'عرض ومتابعة كافة العملاء والمشرفين وفريق العمل',
+    href: '/dashboard/users',
+    icon: Users,
+    color: 'from-cyan-600 to-cyan-700',
+  },
+  {
     title: 'إنشاء حساب موظف',
     description: 'أضف محاسباً أو مديراً أو موظف مبيعات',
     href: '/dashboard/create-account',

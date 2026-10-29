@@ -5,7 +5,8 @@ import { authOptions } from "@/app/next-auth/authOptions";
 // import { getAccessToken } from "@/types/utilities";
 import { getServerSession } from "next-auth";
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000/api";
+const BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-six.vercel.app/api";
 
 // POST /api/wishlist
 export async function AddToWishlist(productId: string) {

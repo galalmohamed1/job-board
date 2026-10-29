@@ -13,7 +13,8 @@ import {
 } from "@/types/product";
 import { getAccessToken } from "@/utilities/utilite";
 
-const BASE =process.env.NEXT_PUBLIC_API_URL ||  "http://localhost:5000/api";
+const BASE =
+  process.env.NEXT_PUBLIC_BASE_URL || "https://horus-nine.vercel.app/api";
 export type StaffRole = "accountant" | "warehouse" | "sales" | "salesManager";
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCTS
@@ -416,7 +417,6 @@ export async function deleteSubCategory(
   }
 }
 
-
 /** GET /api/details-subcategories */
 export async function getDetailsSubCategoriesAdmin(): Promise<
   DetailsSubCategory[]
@@ -527,7 +527,7 @@ export async function deleteDetailsSubCategory(
 //   try {
 //     const token = await getAccessToken();
 //     const res = await fetch(`${BASE}/details-sub-categories`,
-      
+
 //       { cache: 'no-store' });
 //     const data = await res.json();
 //     return data?.data ?? [];
@@ -664,15 +664,13 @@ export async function createCoupon(body: {
   }
 }
 
-export async function createStaffAccount(
-  body: {
-    name: string;
-    email: string;
-    password: string;
-    phone?: string;
-    role: StaffRole;
-  },
-): Promise<{ success: boolean; message?: string }> {
+export async function createStaffAccount(body: {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+  role: StaffRole;
+}): Promise<{ success: boolean; message?: string }> {
   try {
     const authToken = await getAccessToken();
     if (!authToken) {
@@ -716,5 +714,39 @@ export async function createStaffAccount(
     return { success: true, message: data?.message ?? "تم إنشاء الحساب بنجاح" };
   } catch (err) {
     return { success: false, message: (err as Error).message };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** GET /api/users — all users (admin view) */
+export async function getAllUsersAdmin(): Promise<AdminCustomer[] | undefined> {
+  try {
+    const token = await getAccessToken();
+    
+    const res = await fetch(`${BASE}/users`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok) {
+      console.error("Failed to fetch users, status:", res.status, data);
+      return undefined;
+    }
+    if (data && Array.isArray(data.data)) {
+      return data.data;
+    }
+    if (Array.isArray(data)) {
+      return data;
+    }
+    if (data && Array.isArray(data.users)) {
+      return data.users;
+    }
+    return [];
+  } catch (err) {
+    console.error("Error fetching users admin:", err);
+    return undefined;
   }
 }

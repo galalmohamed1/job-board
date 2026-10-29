@@ -7,7 +7,8 @@
 import { Category, DetailsSubCategory } from "@/types/category";
 import { ApiListResponse, SubCategory } from "@/types/product";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const BASE =
+  process.env.NEXT_PUBLIC_API_URL || "https://tasweeq-six.vercel.app/api";
 
 export async function getCategories(): Promise<Category[] | undefined> {
   try {

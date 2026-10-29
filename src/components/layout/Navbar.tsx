@@ -13,6 +13,8 @@ import {
   X,
   Heart,
   ShieldAlert,
+  ShieldCheck,
+  ClipboardList,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -130,16 +132,16 @@ export default function Navbar() {
 
             {/* Login */}
             {status === "unauthenticated" ? (
-  <Link
-    href="/login"
-    aria-label="تسجيل الدخول / إنشاء حساب"
-    className="flex items-center gap-2 text-slate-200 hover:text-gold-primary transition-colors cursor-pointer p-2 rounded-lg hover:bg-white/5"
-  >
-    <span className="hidden md:inline font-semibold whitespace-nowrap">
-      تسجيل الدخول / إنشاء حساب
-    </span>
-    <User className="w-5 h-5 md:w-4 md:h-4" />
-  </Link>
+              <Link
+                href="/login"
+                aria-label="تسجيل الدخول / إنشاء حساب"
+                className="flex items-center gap-2 text-slate-200 hover:text-gold-primary transition-colors cursor-pointer p-2 rounded-lg hover:bg-white/5"
+              >
+                <span className="hidden md:inline font-semibold whitespace-nowrap">
+                  تسجيل الدخول / إنشاء حساب
+                </span>
+                <User className="w-5 h-5 md:w-4 md:h-4" />
+              </Link>
             ) : (
               <DropdownMenu>
                 <DropdownMenuTrigger
@@ -178,6 +180,31 @@ export default function Navbar() {
                         >
                           <ShieldAlert className="w-4 text-gold-primary" />
                           لوحة التحكم
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+
+                    {(myData?.user as any)?.role === "sales" && (
+                      <DropdownMenuItem>
+                        <Link
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gold-primary bg-gold-primary/10 hover:bg-gold-primary/20 transition-colors rounded"
+                          href="/dashboard-sales"
+                        >
+                          <ClipboardList className="w-4 text-gold-primary" />
+                          أوردرات المبيعات
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+
+                    {((myData?.user as any)?.role === "salesManager" ||
+                      (myData?.user as any)?.role?.toLowerCase() === "salesmanager") && (
+                      <DropdownMenuItem>
+                        <Link
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gold-primary bg-gold-primary/10 hover:bg-gold-primary/20 transition-colors rounded"
+                          href="/dashboard-salesmanger"
+                        >
+                          <ShieldCheck className="w-4 text-gold-primary" />
+                          لوحة مدير المبيعات
                         </Link>
                       </DropdownMenuItem>
                     )}
