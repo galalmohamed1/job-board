@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Product } from '@/types/product';
 import ProductCard from './productCart';
 import BannerProduct from './bannerProduct';
 import { useShop } from '@/context/ShopContext';
+import { getDetailsSubCategories, getSubCategories } from '@/app/api/services/category.services';
 import {
   ShoppingBag,
   SlidersHorizontal,
@@ -23,17 +24,6 @@ import Image from 'next/image';
 import { toast } from 'react-toastify';
 
 /* ─── Mock Data ─────────────────────────────────────────────────── */
-const CATEGORIES = [
-  'جميع الأقسام',
-  'إلكترونيات',
-  'أجهزة منزلية',
-  'أدوات ومستلزمات مكتبية',
-  'ملابس وأزياء',
-  'مستلزمات رياضية',
-  'كتب ومنتجات ثقافية',
-  'مستلزمات أخرى',
-];
-const BRANDS = ['سامسونج', 'HP', 'ديل', 'بيو', 'أخرى'];
 const SORT_OPTIONS = [
   { value: 'best-seller', label: 'الأكثر مبيعاً' },
   { value: 'newest', label: 'الأحدث' },
@@ -63,6 +53,8 @@ function StarRow({ rating }: { rating: number }) {
 
 /* ─── Filter Content Component ───────────────────────────────────── */
 interface FilterBodyProps {
+  categories: string[];
+  brands: string[];
   selectedCategory: string;
   setSelectedCategory: (cat: string) => void;
   priceRange: [number, number];
@@ -78,6 +70,8 @@ interface FilterBodyProps {
 }
 
 function FilterBody({
+  categories,
+  brands,
   selectedCategory,
   setSelectedCategory,
   priceRange,
@@ -98,7 +92,7 @@ function FilterBody({
       <div className="mb-5">
         <h3 className="font-bold text-primary text-sm mb-3">الأقسام</h3>
         <ul className="space-y-2.5">
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <li key={cat}>
               <label className="flex items-center gap-2.5 cursor-pointer group">
                 <input
@@ -147,30 +141,32 @@ function FilterBody({
         />
       </div>
 
-      {/* Brand */}
-      <div className="mb-5 pt-4 border-t border-slate-100">
-        <h3 className="font-bold text-primary text-sm mb-3">العلامة التجارية</h3>
-        <ul className="space-y-2.5">
-          {BRANDS.map((brand) => (
-            <li key={brand}>
-              <label className="flex items-center gap-2.5 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  checked={selectedBrands.includes(brand)}
-                  onChange={() => {
-                    toggleBrand(brand);
-                    setCurrentPage(1);
-                  }}
-                  className="accent-[#D49B35] w-4 h-4 rounded cursor-pointer"
-                />
-                <span className="text-sm text-slate-600 group-hover:text-primary transition-colors">
-                  {brand}
-                </span>
-              </label>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {/* Brand / Subcategories */}
+      {brands.length > 0 && (
+        <div className="mb-5 pt-4 border-t border-slate-100">
+          <h3 className="font-bold text-primary text-sm mb-3">الأقسام الفرعية</h3>
+          <ul className="space-y-2.5 max-h-56 overflow-y-auto pl-1">
+            {brands.map((brand) => (
+              <li key={brand}>
+                <label className="flex items-center gap-2.5 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={selectedBrands.includes(brand)}
+                    onChange={() => {
+                      toggleBrand(brand);
+                      setCurrentPage(1);
+                    }}
+                    className="accent-[#D49B35] w-4 h-4 rounded cursor-pointer"
+                  />
+                  <span className="text-sm text-slate-600 group-hover:text-primary transition-colors">
+                    {brand}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Rating */}
       <div className="mb-5 pt-4 border-t border-slate-100">
@@ -229,6 +225,8 @@ function FilterBody({
 /* ─── Main Component ─────────────────────────────────────────────── */
 export default function ProductPage() {
   const { products, addToCart } = useShop();
+  const [categories, setCategories] = useState<string[]>(['جميع الأقسام']);
+  const [brands, setBrands] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('جميع الأقسام');
   const [priceRange, setPriceRange] = useState<[number, number]>([50, 5000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -237,6 +235,35 @@ export default function ProductPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  useEffect(() => {
+    async function loadFilters() {
+      try {
+        const [catsData, subsData] = await Promise.all([
+          getSubCategories(),
+          getDetailsSubCategories(),
+        ]);
+
+        if (catsData && Array.isArray(catsData)) {
+          const catTitles = catsData
+            .map((c) => c.name)
+            .filter((t): t is string => Boolean(t && t.trim()));
+          setCategories(['جميع الأقسام', ...Array.from(new Set(catTitles))]);
+        }
+
+        if (subsData && Array.isArray(subsData)) {
+          const subNames = subsData
+            .map((s) => s.name)
+            .filter((n): n is string => Boolean(n && n.trim()));
+          setBrands(Array.from(new Set(subNames)));
+        }
+      } catch (err) {
+        console.error('Failed to load categories/subcategories:', err);
+      }
+    }
+
+    loadFilters();
+  }, []);
 
   const productList = Array.isArray(products) ? products : [];
   const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? '';
@@ -252,6 +279,19 @@ export default function ProductPage() {
     .filter((p) =>
       selectedCategory === 'جميع الأقسام' || p.category?.title === selectedCategory
     )
+    .filter((p) => {
+      if (selectedBrands.length === 0) return true;
+      if (Array.isArray(p.subcategory)) {
+        return p.subcategory.some((sub: any) =>
+          selectedBrands.includes(typeof sub === 'string' ? sub : sub?.name)
+        );
+      }
+      if (p.subcategory && typeof p.subcategory === 'object') {
+        const subName = (p.subcategory as any).name;
+        return selectedBrands.includes(subName);
+      }
+      return false;
+    })
     .filter((p) => {
       const fp = getProductFinalPrice(p);
       return fp >= priceRange[0] && fp <= priceRange[1];
@@ -412,6 +452,8 @@ export default function ProductPage() {
               {isMobileFilterOpen && (
                 <div className="mt-3 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
                   <FilterBody
+                    categories={categories}
+                    brands={brands}
                     selectedCategory={selectedCategory}
                     setSelectedCategory={setSelectedCategory}
                     priceRange={priceRange}
@@ -634,6 +676,8 @@ export default function ProductPage() {
               </div>
 
               <FilterBody
+                categories={categories}
+                brands={brands}
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
                 priceRange={priceRange}
