@@ -1,7 +1,8 @@
 import { NextAuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { jwtDecode } from "jwt-decode";
-
+const NEXT_PUBLIC_BASE_URL =
+  process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:5000/api";
 export const authOptions: NextAuthOptions = {
   providers: [
     // Add your authentication providers here
@@ -15,16 +16,14 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         // Implement your authentication logic here
         try {
-          const res = await fetch(
-            `${process.env.NEXT_PUBLIC_BASE_URL}/auth/login`, {
+          const res = await fetch(`${NEXT_PUBLIC_BASE_URL}/auth/login`, {
             method: "POST",
             body: JSON.stringify({
               email: credentials?.email,
               password: credentials?.password,
             }),
             headers: { "Content-Type": "application/json" },
-          },
-          );
+          });
           const result = await res.json();
           if (!res.ok) {
             throw new Error(result.message);
