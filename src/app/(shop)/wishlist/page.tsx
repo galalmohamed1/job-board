@@ -29,17 +29,24 @@ const INITIAL_DEMO_PRODUCTS: Product[] = [
     _id: 'w1',
     title: 'سماعات رأس لاسلكية احترافية مع خاصية عزل الضوضاء',
     slug: 'wireless-noise-cancelling-headphones',
+    description: 'صوت محيطي نقي، بطارية تدوم حتى 40 ساعة، مريحة للأذن طوال اليوم.',
     discription: 'صوت محيطي نقي، بطارية تدوم حتى 40 ساعة، مريحة للأذن طوال اليوم.',
     price: 3200,
     discountPrice: 2650,
+    images: [
+      {
+        public_id: 'p1',
+        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Headphones',
+      },
+    ],
     image: [
       {
         public_id: 'p1',
         secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Headphones',
       },
     ],
-    category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' },
-    subcategory: { _id: 's1', name: 'سماعات', slug: 'headphones' },
+    category: { _id: 'c1', title: 'إلكترونيات', name: 'إلكترونيات', slug: 'electronics' },
+    subcategory: [{ _id: 's1', name: 'سماعات', slug: 'headphones' }],
     averageRating: 4.8,
     numReviews: 124,
     sizes: [],
@@ -56,17 +63,24 @@ const INITIAL_DEMO_PRODUCTS: Product[] = [
     _id: 'w2',
     title: 'ساعة ذكية رياضية سامسونج - مقاومة للماء مع تتبع الصحة',
     slug: 'samsung-smart-watch-waterproof',
+    description: 'شاشة AMOLED، حساس لقياس نبضات القلب، وبطارية ذكية تدوم أياماً.',
     discription: 'شاشة AMOLED، حساس لقياس نبضات القلب، وبطارية ذكية تدوم أياماً.',
     price: 3400,
     discountPrice: 2950,
+    images: [
+      {
+        public_id: 'p2',
+        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=SmartWatch',
+      },
+    ],
     image: [
       {
         public_id: 'p2',
         secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=SmartWatch',
       },
     ],
-    category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' },
-    subcategory: { _id: 's2', name: 'ساعات ذكية', slug: 'watches' },
+    category: { _id: 'c1', title: 'إلكترونيات', name: 'إلكترونيات', slug: 'electronics' },
+    subcategory: [{ _id: 's2', name: 'ساعات ذكية', slug: 'watches' }],
     averageRating: 4.9,
     numReviews: 98,
     sizes: [],
@@ -83,16 +97,23 @@ const INITIAL_DEMO_PRODUCTS: Product[] = [
     _id: 'w3',
     title: 'حقيبة ظهر عصرية متعددة الجيوب ومقاومة للماء للعمل والسفر',
     slug: 'waterproof-travel-backpack',
+    description: 'سعة 25 لتر، مخرج USB للشحن، وحزام تثبيت على حقائب السفر.',
     discription: 'سعة 25 لتر، مخرج USB للشحن، وحزام تثبيت على حقائب السفر.',
     price: 850,
+    images: [
+      {
+        public_id: 'p3',
+        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Backpack',
+      },
+    ],
     image: [
       {
         public_id: 'p3',
         secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Backpack',
       },
     ],
-    category: { _id: 'c2', name: 'ملابس وأزياء', slug: 'fashion' },
-    subcategory: { _id: 's3', name: 'حقائب', slug: 'bags' },
+    category: { _id: 'c2', title: 'ملابس وأزياء', name: 'ملابس وأزياء', slug: 'fashion' },
+    subcategory: [{ _id: 's3', name: 'حقائب', slug: 'bags' }],
     averageRating: 4.6,
     numReviews: 76,
     sizes: [],
@@ -109,17 +130,24 @@ const INITIAL_DEMO_PRODUCTS: Product[] = [
     _id: 'w4',
     title: 'شاشة ألعاب 24 بوصة IPS بدقة FHD ومعدل تحديث 144Hz',
     slug: 'gaming-monitor-24-inch',
+    description: 'زمن استجابة 1ms، ألوان زاهية، تدعم FreeSync و G-Sync.',
     discription: 'زمن استجابة 1ms، ألوان زاهية، تدعم FreeSync و G-Sync.',
     price: 3800,
     discountPrice: 3200,
+    images: [
+      {
+        public_id: 'p4',
+        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Monitor',
+      },
+    ],
     image: [
       {
         public_id: 'p4',
         secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Monitor',
       },
     ],
-    category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' },
-    subcategory: { _id: 's5', name: 'شاشات', slug: 'monitors' },
+    category: { _id: 'c1', title: 'إلكترونيات', name: 'إلكترونيات', slug: 'electronics' },
+    subcategory: [{ _id: 's5', name: 'شاشات', slug: 'monitors' }],
     averageRating: 4.7,
     numReviews: 54,
     sizes: [],
@@ -167,11 +195,13 @@ export default function WishlistPage() {
         _id: id,
         title: 'منتج في قائمة المفضلة',
         slug: id,
+        description: '',
         discription: '',
         price: 0,
+        images: [{ public_id: id, secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Product' }],
         image: [{ public_id: id, secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Product' }],
-        category: { _id: 'c', name: 'عام', slug: 'general' },
-        subcategory: { _id: 's', name: 'منتجات', slug: 'products' },
+        category: { _id: 'c', title: 'عام', name: 'عام', slug: 'general' },
+        subcategory: [{ _id: 's', name: 'منتجات', slug: 'products' }],
         averageRating: 5,
         numReviews: 1,
         sizes: [],
@@ -183,7 +213,7 @@ export default function WishlistPage() {
         updatedAt: '',
         stock: 10,
         __v: 0,
-      } as Product;
+      } as unknown as Product;
     });
     return matched;
   }, [wishlist, allAvailableProducts, demoActive]);

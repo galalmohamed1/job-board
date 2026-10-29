@@ -68,7 +68,7 @@ export default function CategoriesManager() {
   const openEdit = (cat: Category) => {
     setEditingCategory(cat);
     setTitle(cat.title);
-    setDescription(cat.description);
+    setDescription(cat.description || '');
     setImageBase64(null);
     setActiveTab('edit');
   };
@@ -336,7 +336,7 @@ export default function CategoriesManager() {
                   className="group bg-slate-50 rounded-xl border border-slate-200 hover:border-[#D49B35]/50 hover:shadow-md transition-all overflow-hidden"
                 >
                   <div className="h-32 bg-slate-200 overflow-hidden relative">
-                    {cat.image?.secure_url ? (
+                    {typeof cat.image === 'object' && cat.image && 'secure_url' in cat.image && cat.image.secure_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                             src={`${API_ORIGIN}${cat.image.secure_url}`}

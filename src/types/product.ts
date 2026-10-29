@@ -32,13 +32,13 @@ export interface Product {
   images: ProductImage[];
   image?: ProductImage[];
   videos?: string[];
-  category: Category | null;
+  category: Category | { _id: string; title?: string; name?: string; slug?: string } | null;
   subcategory: SubCategory[] | any;
   detailsSubCategory?: DetailsSubCategory[];
   averageRating: number;
   numReviews: number;
-  sizes: string[];
-  colors: string[];
+  sizes?: string[];
+  colors?: string[];
   isFeatured: boolean;
   isActive: boolean;
   isDeleted: boolean;
