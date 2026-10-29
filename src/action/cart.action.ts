@@ -5,7 +5,6 @@ import { getAccessToken } from "@/utilities/utilite";
 const getBaseUrl = () =>
   (
     process.env.NEXT_PUBLIC_BASE_URL ||
-    process.env.BASE_URL ||
     "http://localhost:5000/api"
   )
     .trim()

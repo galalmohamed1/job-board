@@ -60,8 +60,11 @@ export default function LoginPage() {
         window.location.replace('/');
       }
     } else {
+      console.log("SIGNIN RESPONSE:", response);
       const errorMsg =
-         'An unexpected error occurred. Please try again.';
+        response?.error && response.error !== "CredentialsSignin"
+          ? response.error
+          : "الإيميل أو الباسورد غير صحيح، أو الحساب غير مفعّل.";
       setErrorMessage(errorMsg);
       toast.error(errorMsg);
       setLoading(false);
