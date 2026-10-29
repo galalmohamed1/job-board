@@ -15,14 +15,16 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         // Implement your authentication logic here
         try {
-          const res = await fetch(`http://localhost:5000/auth/login`, {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_BASE_URL}/auth/login`, {
             method: "POST",
             body: JSON.stringify({
               email: credentials?.email,
               password: credentials?.password,
             }),
             headers: { "Content-Type": "application/json" },
-          });
+          },
+          );
           const result = await res.json();
           if (!res.ok) {
             throw new Error(result.message);
