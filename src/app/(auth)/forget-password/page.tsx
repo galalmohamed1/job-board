@@ -1,26 +1,64 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Mail, ArrowRight, ShieldCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'react-toastify';
+import { Mail, ArrowRight, Loader2, AlertCircle, KeyRound } from 'lucide-react';
 import HorusLogo from '@/components/logo/HorusLogo';
+import {
+  forgotPasswordSchema,
+  forgotPasswordSchemaType,
+} from '@/schemas/auth.schema';
+import { forgotPasswords } from '@/action/auth.action';
 
 export default function ForgetPasswordPage() {
-  const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (email) {
-      setSubmitted(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<forgotPasswordSchemaType>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: '' },
+  });
+
+  async function onSubmit(data: forgotPasswordSchemaType) {
+    setLoading(true);
+    setErrorMessage(null);
+
+    const result = await forgotPasswords(data);
+
+    if (result?.ok) {
+      toast.success('Reset code sent! Check your inbox.');
+      // Store email in sessionStorage for the OTP step
+      sessionStorage.setItem('reset_email', data.email);
+      router.push('/forget-password/otp');
+    } else {
+      const msg = result?.error || 'Something went wrong. Please try again.';
+      setErrorMessage(msg);
+      toast.error(msg);
+      setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-[#F8FAFC] py-12 px-4 sm:px-6" dir="rtl">
+    <div
+      className="min-h-[80vh] flex items-center justify-center bg-[#F8FAFC] py-12 px-4 sm:px-6"
+      dir="rtl"
+    >
       <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 p-8 shadow-xs text-center">
         <div className="flex justify-center mb-6">
           <HorusLogo size="md" />
+        </div>
+
+        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#FDF8ED] border border-[#D49B35]/30 mx-auto mb-4 text-[#D49B35]">
+          <KeyRound className="w-6 h-6" />
         </div>
 
         <h1 className="text-2xl font-black text-[#08101E] mb-2">استعادة كلمة المرور</h1>
@@ -28,46 +66,51 @@ export default function ForgetPasswordPage() {
           أدخل بريدك الإلكتروني المسجل وسنرسل لك رمز التأكيد لإعادة تعيين كلمة المرور.
         </p>
 
-        {submitted ? (
-          <div className="space-y-4">
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">
-              <ShieldCheck className="w-8 h-8 mx-auto text-emerald-600 mb-2" />
-              تم إرسال رمز التحقق إلى بريدك الإلكتروني بنجاح.
-            </div>
-            <Link
-              href="/forget-password/otp"
-              className="w-full block py-3 rounded-xl bg-[#D49B35] hover:bg-[#c38c2b] text-[#08101E] font-black text-sm shadow-md transition-all"
-            >
-              متابعة لإدخال رمز التأكيد
-            </Link>
+        {errorMessage && (
+          <div className="mb-5 flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs text-right">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+            <span>{errorMessage}</span>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 text-right">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                البريد الإلكتروني
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@domain.com"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#D49B35]"
-                />
-                <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-[#D49B35] hover:bg-[#c38c2b] text-[#08101E] font-black text-sm shadow-md transition-all cursor-pointer"
-            >
-              إرسال رمز التأكيد
-            </button>
-          </form>
         )}
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-right">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">
+              البريد الإلكتروني
+            </label>
+            <div className="relative">
+              <input
+                type="email"
+                {...register('email')}
+                placeholder="example@domain.com"
+                className={`w-full rounded-xl border bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#D49B35] ${
+                  errors.email ? 'border-red-400' : 'border-slate-200'
+                }`}
+              />
+              <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+            </div>
+            {errors.email && (
+              <p className="mt-1 text-xs text-red-500 font-medium">
+                {errors.email.message}
+              </p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-[#D49B35] hover:bg-[#c38c2b] text-[#08101E] font-black text-sm shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>جاري الإرسال...</span>
+              </>
+            ) : (
+              <span>إرسال رمز التأكيد</span>
+            )}
+          </button>
+        </form>
 
         <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-center">
           <Link

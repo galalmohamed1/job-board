@@ -24,7 +24,7 @@
   --navy-accent-blue: #16284D;  /* تدرج الخلفية في البانر الأوسط */
 
   /* ===== Canvas & Neutral Surfaces (الأسطح الفاتحة) ===== */
-  --neutral-page-bg: #F8FAFC;   /* خلفية الصفحة العامة */
+  --neutral-page-bg: #f8fafcc5;   /* خلفية الصفحة العامة */
   --neutral-card-bg: #FFFFFF;   /* بطاقات المنتجات والأقسام */
   --neutral-subtle-bg: #F1F5F9; /* الحقول والأزرار الثانوية */
   --neutral-border: #E2E8F0;    /* حدود البطاقات والحقول */

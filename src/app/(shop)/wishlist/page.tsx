@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -10,7 +10,6 @@ import {
   ArrowLeft,
   Share2,
   Star,
-  Check,
   ShoppingBag,
   LayoutGrid,
   List as ListIcon,
@@ -18,10 +17,13 @@ import {
   Home,
   ChevronRight,
   RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { Product } from '@/types/product';
+import { useShop } from '@/context/ShopContext';
+import { toast } from 'react-toastify';
 
-/* ─── Mock Demo Products for Wishlist ───────────────────────────── */
+/* ─── Mock Fallback Products for Demo/Testing ───────────────────── */
 const INITIAL_DEMO_PRODUCTS: Product[] = [
   {
     _id: 'w1',
@@ -127,84 +129,110 @@ const INITIAL_DEMO_PRODUCTS: Product[] = [
     isDeleted: false,
     createdAt: '',
     updatedAt: '',
-    stock: 0, // out of stock demo
+    stock: 0,
     __v: 0,
   },
 ];
 
-const WISHLIST_STORAGE_KEY = 'horus_wishlist_items';
-
 export default function WishlistPage() {
-  const [items, setItems] = useState<Product[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const {
+    wishlist,
+    toggleWishlist,
+    addToCart,
+    products,
+    isWishlistLoading,
+  } = useShop();
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'rating'>('default');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [notification, setNotification] = useState<string | null>(null);
+  const [demoActive, setDemoActive] = useState(false);
+  const [addingId, setAddingId] = useState<string | null>(null);
 
-  // Initialize wishlist from localStorage or default
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(WISHLIST_STORAGE_KEY);
-      if (stored !== null) {
-        setItems(JSON.parse(stored));
-      } else {
-        // Set initial demo items if never visited
-        setItems(INITIAL_DEMO_PRODUCTS);
-        localStorage.setItem(WISHLIST_STORAGE_KEY, JSON.stringify(INITIAL_DEMO_PRODUCTS));
-      }
-    } catch {
-      setItems(INITIAL_DEMO_PRODUCTS);
-    }
-    setIsLoaded(true);
-  }, []);
+  // Map wishlist IDs to product items
+  const allAvailableProducts = useMemo(() => {
+    return [...products, ...INITIAL_DEMO_PRODUCTS];
+  }, [products]);
 
-
-
-  const showToast = (message: string) => {
-    setNotification(message);
-    setTimeout(() => {
-      setNotification(null);
-    }, 3000);
-  };
+  const items: Product[] = useMemo(() => {
+    if (demoActive) return INITIAL_DEMO_PRODUCTS;
+    if (wishlist.length === 0) return [];
+    
+    // Find matching products
+    const matched = wishlist.map((id) => {
+      const found = allAvailableProducts.find((p) => p._id === id);
+      if (found) return found;
+      // Synthesize fallback product if not in list
+      return {
+        _id: id,
+        title: 'منتج في قائمة المفضلة',
+        slug: id,
+        discription: '',
+        price: 0,
+        image: [{ public_id: id, secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Product' }],
+        category: { _id: 'c', name: 'عام', slug: 'general' },
+        subcategory: { _id: 's', name: 'منتجات', slug: 'products' },
+        averageRating: 5,
+        numReviews: 1,
+        sizes: [],
+        colors: [],
+        isFeatured: false,
+        isActive: true,
+        isDeleted: false,
+        createdAt: '',
+        updatedAt: '',
+        stock: 10,
+        __v: 0,
+      } as Product;
+    });
+    return matched;
+  }, [wishlist, allAvailableProducts, demoActive]);
 
   // Remove single item
-  const handleRemove = (productId: string, title: string) => {
-    const updated = items.filter((p) => p._id !== productId);
-
-    showToast(`تمت إزالة "${title.slice(0, 20)}..." من المفضلة`);
-  };
-
-  // Clear all items (switches to Empty State)
-  const handleClearAll = () => {
-    if (window.confirm('هل أنت متأكد من رغبتك في تفريغ قائمة المفضلة بالكامل؟')) {
-
-      showToast('تم إفراغ قائمة المفضلة بنجاح');
-    }
-  };
-
-  // Reset demo items (for testing populated state)
-  const handleResetDemo = () => {
-    showToast('تمت استعادة منتجات المفضلة التجريبية');
-  };
-
-  // Add all in-stock items to cart (demo toast)
-  const handleMoveAllToCart = () => {
-    const inStockCount = items.filter((p) => p.stock > 0).length;
-    if (inStockCount === 0) {
-      showToast('لا توجد منتجات متوفرة في المخزون حالياً للإضافة إلى السلة');
+  const handleRemove = async (productId: string, title: string) => {
+    if (demoActive) {
+      toast.info(`تمت إزالة "${title.slice(0, 20)}..." من المفضلة التجريبية`);
       return;
     }
-    showToast(`تمت إضافة ${inStockCount} منتجات متوفرة إلى سلة التسوق بنجاح`);
+    await toggleWishlist(productId);
+    toast.info(`تمت إزالة "${title.slice(0, 20)}..." من المفضلة`);
+  };
+
+  // Add single item to cart
+  const handleAddToCart = async (product: Product) => {
+    setAddingId(product._id);
+    try {
+      const ok = await addToCart(product._id, 1);
+      if (ok) {
+        toast.success(`تمت إضافة "${product.title.slice(0, 20)}..." إلى السلة بنجاح`);
+      } else {
+        toast.info("يرجى تسجيل الدخول أولاً لإضافة المنتج إلى السلة");
+      }
+    } catch {
+      toast.error("حدث خطأ أثناء الإضافة إلى السلة");
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  // Move all in-stock items to cart
+  const handleMoveAllToCart = async () => {
+    const inStockItems = items.filter((p) => p.stock > 0);
+    if (inStockItems.length === 0) {
+      toast.warning('لا توجد منتجات متوفرة في المخزون حالياً للإضافة إلى السلة');
+      return;
+    }
+    for (const item of inStockItems) {
+      await addToCart(item._id, 1);
+    }
+    toast.success(`تمت إضافة ${inStockItems.length} منتجات متوفرة إلى سلة التسوق`);
   };
 
   // Share Wishlist
   const handleShare = () => {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(window.location.href);
-      showToast('تم نسخ رابط قائمة المفضلة إلى الحافظة');
-    } else {
-      showToast('تم حفظ رابط القائمة');
+      toast.success('تم نسخ رابط قائمة المفضلة إلى الحافظة');
     }
   };
 
@@ -225,7 +253,7 @@ export default function WishlistPage() {
   const totalValue = items.reduce((acc, p) => acc + (p.discountPrice ?? p.price), 0);
   const inStockItems = items.filter((p) => p.stock > 0);
 
-  if (!isLoaded) {
+  if (isWishlistLoading && items.length === 0) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center bg-[#F8FAFC]">
         <div className="flex flex-col items-center gap-3">
@@ -238,14 +266,6 @@ export default function WishlistPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-6 sm:py-10 text-slate-800" dir="rtl">
-      {/* ── Toast Notification ── */}
-      {notification && (
-        <div className="fixed bottom-6 left-6 z-50 flex items-center gap-2.5 rounded-xl bg-[#08101E] px-4 py-3 text-sm font-medium text-white shadow-xl border border-[#D49B35]/40 animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <Check className="w-4 h-4 text-[#D49B35]" />
-          <span>{notification}</span>
-        </div>
-      )}
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* ── Breadcrumb ── */}
         <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-xs sm:text-sm text-slate-500">
@@ -257,17 +277,13 @@ export default function WishlistPage() {
           <span className="text-[#08101E] font-bold">قائمة المفضلة</span>
         </nav>
 
-        {/* ══════════════════════════════════════════════════════════════ */}
-        {/* ── Case 1: EMPTY WISHLIST STATE ───────────────────────────── */}
-        {/* ══════════════════════════════════════════════════════════════ */}
+        {/* ── Case 1: Empty State ── */}
         {items.length === 0 ? (
           <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-8 sm:p-14 text-center shadow-xs">
-            {/* Subtle Decorative Background Gradients */}
             <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-[#D49B35]/5 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-[#08101E]/5 blur-3xl" />
 
             <div className="mx-auto max-w-md flex flex-col items-center">
-              {/* Animated Empty Heart Badge */}
               <div className="relative mb-6">
                 <div className="grid h-24 w-24 sm:h-28 sm:w-28 place-items-center rounded-3xl bg-gradient-to-br from-[#FDF8ED] to-[#F5ECE0] border border-[#D49B35]/30 shadow-inner">
                   <Heart className="h-12 w-12 sm:h-14 sm:w-14 text-[#D49B35] stroke-[1.5]" />
@@ -277,7 +293,6 @@ export default function WishlistPage() {
                 </div>
               </div>
 
-              {/* Headings */}
               <h1 className="text-2xl sm:text-3xl font-black text-[#08101E] mb-3">
                 قائمة المفضلة فارغة حالياً
               </h1>
@@ -285,7 +300,6 @@ export default function WishlistPage() {
                 لم تقم بإضافة أي منتج إلى المفضلة بعد. استكشف آلاف المنتجات المميزة واحفظ ما يعجبك لتطلبه لاحقاً بكل سهولة!
               </p>
 
-              {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
                 <Link
                   href="/product"
@@ -298,7 +312,7 @@ export default function WishlistPage() {
 
                 <button
                   type="button"
-                  onClick={handleResetDemo}
+                  onClick={() => setDemoActive(true)}
                   className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3.5 rounded-xl border border-slate-300 hover:border-[#D49B35] bg-slate-50 hover:bg-[#FDF8ED] text-slate-700 hover:text-[#08101E] text-xs sm:text-sm font-bold transition-all cursor-pointer"
                   title="استرجاع عناصر تجريبية لاختبار مظهر القائمة الممتلئة"
                 >
@@ -306,35 +320,11 @@ export default function WishlistPage() {
                   <span>معاينة منتجات تجريبية</span>
                 </button>
               </div>
-
-              {/* Suggested Quick Categories */}
-              <div className="mt-12 pt-8 border-t border-slate-100 w-full">
-                <span className="text-xs font-bold text-slate-400 mb-3 block">أقسام رائجة قد تهمك:</span>
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  {[
-                    { label: 'إلكترونيات', href: '/product' },
-                    { label: 'ساعات ذكية', href: '/product' },
-                    { label: 'ملابس وأزياء', href: '/product' },
-                    { label: 'أجهزة منزلية', href: '/product' },
-                  ].map((cat, i) => (
-                    <Link
-                      key={i}
-                      href={cat.href}
-                      className="px-3.5 py-1.5 rounded-full bg-slate-100 hover:bg-[#D49B35]/15 text-slate-600 hover:text-[#08101E] text-xs font-semibold transition-colors"
-                    >
-                      {cat.label}
-                    </Link>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         ) : (
-          /* ══════════════════════════════════════════════════════════════ */
-          /* ── Case 2: POPULATED WISHLIST STATE ───────────────────────── */
-          /* ══════════════════════════════════════════════════════════════ */
+          /* ── Case 2: Populated Wishlist State ── */
           <div>
-            {/* ── Top Bar: Title, Count, & Global Actions ── */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-5 border-b border-slate-200">
               <div className="flex items-center gap-3">
                 <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#08101E] text-[#D49B35] shadow-xs">
@@ -375,22 +365,11 @@ export default function WishlistPage() {
                   <Share2 className="w-4 h-4 text-slate-500" />
                   <span className="hidden sm:inline">مشاركة</span>
                 </button>
-
-                <button
-                  type="button"
-                  onClick={handleClearAll}
-                  className="flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 px-3 py-2.5 text-xs sm:text-sm font-bold text-red-600 transition-colors cursor-pointer"
-                  title="تفريغ القائمة بالكامل"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span className="hidden sm:inline">تفريغ</span>
-                </button>
               </div>
             </div>
 
             {/* ── Controls & Filter Bar ── */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-xs">
-              {/* Category Filter Pills */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
                 {categories.map((cat, idx) => (
                   <button
@@ -408,9 +387,7 @@ export default function WishlistPage() {
                 ))}
               </div>
 
-              {/* Sort & View Mode */}
               <div className="flex items-center justify-between sm:justify-end gap-2.5">
-                {/* Sort dropdown */}
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
@@ -422,7 +399,6 @@ export default function WishlistPage() {
                   <option value="rating">الأعلى تقييماً</option>
                 </select>
 
-                {/* View Mode Buttons */}
                 <div className="flex items-center rounded-xl border border-slate-200 bg-slate-50 p-1">
                   <button
                     type="button"
@@ -465,13 +441,13 @@ export default function WishlistPage() {
                     ? Math.round(((product.price - product.discountPrice!) / product.price) * 100)
                     : 0;
                   const inStock = product.stock > 0;
+                  const isAdding = addingId === product._id;
 
                   return (
                     <article
                       key={product._id}
                       className="group relative flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:shadow-lg transition-all"
                     >
-                      {/* Top Badges */}
                       <div className="absolute top-3 right-3 left-3 z-10 flex items-center justify-between pointer-events-none">
                         <div>
                           {hasDiscount && (
@@ -481,7 +457,6 @@ export default function WishlistPage() {
                           )}
                         </div>
 
-                        {/* Remove from wishlist button */}
                         <button
                           type="button"
                           onClick={() => handleRemove(product._id, product.title)}
@@ -493,44 +468,43 @@ export default function WishlistPage() {
                         </button>
                       </div>
 
-                      {/* Product Image */}
-                      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-slate-50 flex items-center justify-center mb-3">
-                        {product.image[0]?.secure_url && (
-                          <Image
-                            src={product.image[0].secure_url}
-                            alt={product.title}
-                            fill
-                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
-                            className="object-contain p-3 transition-transform duration-500 group-hover:scale-105"
-                          />
-                        )}
-                        {!inStock && (
-                          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center">
-                            <span className="rounded-lg bg-red-600 px-3 py-1 text-xs font-black text-white shadow-md">
-                              نفد من المخزون
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      <Link href={`/product`} className="block">
+                        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-slate-50 flex items-center justify-center mb-3">
+                          {product.image?.[0]?.secure_url && (
+                            <Image
+                              src={product.image[0].secure_url}
+                              alt={product.title}
+                              fill
+                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
+                              className="object-contain p-3 transition-transform duration-500 group-hover:scale-105"
+                            />
+                          )}
+                          {!inStock && (
+                            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center">
+                              <span className="rounded-lg bg-red-600 px-3 py-1 text-xs font-black text-white shadow-md">
+                                نفد من المخزون
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
 
-                      {/* Details */}
                       <div className="flex-1 flex flex-col text-right">
-                        {/* Category */}
                         {product.category?.name && (
                           <span className="text-[11px] font-bold text-[#D49B35] mb-1">
                             {product.category.name}
                           </span>
                         )}
 
-                        {/* Title */}
-                        <h3
-                          className="text-sm sm:text-base font-bold text-[#08101E] line-clamp-2 leading-snug mb-2 group-hover:text-[#D49B35] transition-colors"
-                          title={product.title}
-                        >
-                          {product.title}
-                        </h3>
+                        <Link href={`/product`}>
+                          <h3
+                            className="text-sm sm:text-base font-bold text-[#08101E] line-clamp-2 leading-snug mb-2 group-hover:text-[#D49B35] transition-colors"
+                            title={product.title}
+                          >
+                            {product.title}
+                          </h3>
+                        </Link>
 
-                        {/* Rating */}
                         <div className="flex items-center gap-1.5 mb-3">
                           <div className="flex items-center gap-0.5 text-amber-400">
                             {[1, 2, 3, 4, 5].map((s) => (
@@ -549,7 +523,6 @@ export default function WishlistPage() {
                           </span>
                         </div>
 
-                        {/* Price */}
                         <div className="mt-auto pt-2 flex items-baseline gap-2 mb-3">
                           <span className="text-lg font-black text-[#08101E]">
                             {finalPrice.toLocaleString('ar-EG')}{' '}
@@ -562,19 +535,22 @@ export default function WishlistPage() {
                           )}
                         </div>
 
-                        {/* Cart Action Button */}
                         <button
                           type="button"
-                          disabled={!inStock}
-                          onClick={() => showToast(`تمت إضافة "${product.title.slice(0, 20)}..." إلى السلة`)}
+                          disabled={!inStock || isAdding}
+                          onClick={() => handleAddToCart(product)}
                           className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs sm:text-sm font-black transition-all shadow-xs ${
                             inStock
                               ? 'bg-[#F25822] hover:bg-[#d94a18] active:scale-[0.99] text-white cursor-pointer hover:shadow-md'
                               : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                           }`}
                         >
-                          <ShoppingCart className="w-4 h-4" />
-                          <span>{inStock ? 'أضف إلى السلة' : 'غير متوفر حالياً'}</span>
+                          {isAdding ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ShoppingCart className="w-4 h-4" />
+                          )}
+                          <span>{inStock ? (isAdding ? 'جاري الإضافة...' : 'أضف إلى السلة') : 'غير متوفر حالياً'}</span>
                         </button>
                       </div>
                     </article>
@@ -591,6 +567,7 @@ export default function WishlistPage() {
                     product.discountPrice < product.price;
                   const finalPrice = hasDiscount ? product.discountPrice! : product.price;
                   const inStock = product.stock > 0;
+                  const isAdding = addingId === product._id;
 
                   return (
                     <article
@@ -598,9 +575,8 @@ export default function WishlistPage() {
                       className="group flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:shadow-md transition-all text-right"
                     >
                       <div className="flex items-center gap-4 w-full sm:w-auto">
-                        {/* Image */}
                         <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-xl bg-slate-50 flex items-center justify-center">
-                          {product.image[0]?.secure_url && (
+                          {product.image?.[0]?.secure_url && (
                             <Image
                               src={product.image[0].secure_url}
                               alt={product.title}
@@ -611,7 +587,6 @@ export default function WishlistPage() {
                           )}
                         </div>
 
-                        {/* Info */}
                         <div className="flex-1">
                           <span className="text-[11px] font-bold text-[#D49B35]">
                             {product.category?.name}
@@ -639,19 +614,22 @@ export default function WishlistPage() {
                         </div>
                       </div>
 
-                      {/* Actions */}
                       <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                         <button
                           type="button"
-                          disabled={!inStock}
-                          onClick={() => showToast(`تمت إضافة "${product.title.slice(0, 20)}..." إلى السلة`)}
+                          disabled={!inStock || isAdding}
+                          onClick={() => handleAddToCart(product)}
                           className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all ${
                             inStock
                               ? 'bg-[#F25822] hover:bg-[#d94a18] text-white cursor-pointer shadow-xs'
                               : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                           }`}
                         >
-                          <ShoppingCart className="w-4 h-4" />
+                          {isAdding ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <ShoppingCart className="w-4 h-4" />
+                          )}
                           <span>أضف إلى السلة</span>
                         </button>
 

@@ -12,19 +12,30 @@ import {
   Menu,
   X,
   Heart,
+  ShieldAlert,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FiUser } from 'react-icons/fi';
+import { FaRegUserCircle } from 'react-icons/fa';
 import HorusLogo from '@/components/logo/HorusLogo';
 import SearchBox from '@/components/SearchBox';
+import { signOut, useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
+import { useShop } from '@/context/ShopContext';
+import { FaBoxOpen, FaRegAddressBook, FaRegHeart, FaRightFromBracket } from 'react-icons/fa6';
+import { IoMdSettings } from 'react-icons/io';
 
-interface HeaderProps {
-  cartCount?: number;
-  favoriteCount?: number;
-}
-
-export default function Navbar({
-  cartCount = 1,
-  favoriteCount = 1,
-}: HeaderProps) {
+export default function Navbar() {
+  const pathname = usePathname();
+  const { cartCount, wishlistCount } = useShop();
   const [isCampaignsOpen, setIsCampaignsOpen] = useState(false);
   const [active, setActive] = useState('/');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -50,6 +61,14 @@ export default function Navbar({
     { title: 'من نحن', href: '/#about' },
     { title: 'تواصل معنا', href: '/#contact' },
   ];
+  const {data:myData , status}= useSession();
+  function mySignOut() {
+    signOut({ redirect: true, callbackUrl: '/login' });
+  }
+
+  if (pathname?.startsWith('/dashboard')) {
+    return null;
+  }
 
   return (
     <header className="w-full relative z-50">
@@ -74,7 +93,7 @@ export default function Navbar({
           <div className="flex items-center gap-1 sm:gap-3 md:gap-5 text-white text-xs md:text-sm shrink-0">
             {/* Cart */}
             <Link
-              href='/#cart'
+              href='/cart'
               type="button"
               aria-label="سلة المشتريات"
               className="relative flex items-center gap-2 text-slate-200 hover:text-gold-primary transition-colors cursor-pointer p-2 rounded-lg hover:bg-white/5"
@@ -100,9 +119,9 @@ export default function Navbar({
               <span className="hidden md:inline font-semibold"> المفضله</span>
               <div className="relative">
                 <Heart className="w-5 h-5" />
-                {favoriteCount > 0 && (
+                {wishlistCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-badge-red text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {favoriteCount}
+                    {wishlistCount}
                   </span>
                 )}
               </div>
@@ -110,17 +129,124 @@ export default function Navbar({
             <span className="text-slate-600 hidden md:inline">|</span>
 
             {/* Login */}
-            <Link
-              type="button"
-              href={"/login"}
-              aria-label="تسجيل الدخول / إنشاء حساب"
-              className="flex items-center gap-2 text-slate-200 hover:text-gold-primary transition-colors cursor-pointer p-2 rounded-lg hover:bg-white/5"
-            >
-              <span className="hidden md:inline font-semibold whitespace-nowrap">
-                تسجيل الدخول / إنشاء حساب
-              </span>
-              <User className="w-5 h-5 md:w-4 md:h-4" />
-            </Link>
+            {status === "unauthenticated" ? (
+  <Link
+    href="/login"
+    aria-label="تسجيل الدخول / إنشاء حساب"
+    className="flex items-center gap-2 text-slate-200 hover:text-gold-primary transition-colors cursor-pointer p-2 rounded-lg hover:bg-white/5"
+  >
+    <span className="hidden md:inline font-semibold whitespace-nowrap">
+      تسجيل الدخول / إنشاء حساب
+    </span>
+    <User className="w-5 h-5 md:w-4 md:h-4" />
+  </Link>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label="حسابي"
+                  className="flex items-center text-slate-200 hover:text-gold-primary transition-colors cursor-pointer outline-none"
+                >
+                  <div className="group flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-full hover:bg-white/5 transition-colors">
+                    <FaRegUserCircle className="text-xl text-slate-200 group-hover:text-gold-primary transition-colors" />
+                  </div>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                  align="end"
+                  className="w-64 bg-[#141418] border border-white/10 shadow-xl text-slate-200"
+                >
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel className="flex items-center gap-3 p-4 border-b mb-1 border-white/10">
+                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                        <FaRegUserCircle className="text-xl text-gold-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-slate-100 truncate">
+                          {myData?.user?.name}
+                        </p>
+                        <p className="text-xs font-medium text-slate-400 truncate">
+                          {myData?.user?.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+
+                    {(myData?.user as any)?.role === "admin" && (
+                      <DropdownMenuItem>
+                        <Link
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gold-primary bg-gold-primary/10 hover:bg-gold-primary/20 transition-colors rounded"
+                          href="/dashboard"
+                        >
+                          <ShieldAlert className="w-4 text-gold-primary" />
+                          لوحة التحكم
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+
+                    <DropdownMenuItem>
+                      <Link
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:text-gold-primary hover:bg-white/5 transition-colors"
+                        href="/profile"
+                      >
+                        <FiUser className="w-4 text-slate-400" />
+                        حسابي
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem>
+                      <Link
+                        className="w-full cursor-pointer flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:text-gold-primary hover:bg-white/5 transition-colors"
+                        href={"/cart"}
+                      >
+                        <FaBoxOpen className="w-4 text-slate-400" />
+                        طلباتي
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem>
+                      <Link
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:text-gold-primary hover:bg-white/5 transition-colors"
+                        href="/wishlist"
+                      >
+                        <FaRegHeart className="w-4 text-slate-400" />
+                        المفضلة
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem>
+                      <Link
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:text-gold-primary hover:bg-white/5 transition-colors"
+                        href="/profile/address"
+                      >
+                        <FaRegAddressBook className="w-4 text-slate-400" />
+                        العناوين
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem>
+                      <Link
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:text-gold-primary hover:bg-white/5 transition-colors"
+                        href="/profile/settings"
+                      >
+                        <IoMdSettings className="w-4 text-slate-400" />
+                        الإعدادات
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+
+                  <DropdownMenuSeparator className="bg-white/10" />
+
+                  <DropdownMenuItem>
+                    <div
+                      onClick={mySignOut}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors w-full text-right cursor-pointer"
+                    >
+                      <FaRightFromBracket className="text-xs" />
+                      <span>تسجيل الخروج</span>
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             {/* Mobile Menu Button */}
             <button
@@ -228,6 +354,36 @@ export default function Navbar({
       {/* Mobile Drawer Navigation */}
       {mobileMenuOpen && (
         <div className="md:hidden border-b border-navy-border px-4 py-3 bg-navy-main max-h-[70vh] overflow-y-auto">
+          {/* Quick Cart & Wishlist for Mobile */}
+          <div className="grid grid-cols-2 gap-2 pb-3 mb-2 border-b border-slate-800/70">
+            <Link
+              href="/cart"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-center gap-2 p-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 hover:text-gold-primary text-xs font-semibold"
+            >
+              <ShoppingCart className="w-4 h-4 text-gold-primary" />
+              <span>السلة</span>
+              {cartCount > 0 && (
+                <span className="bg-badge-red text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+            <Link
+              href="/wishlist"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-center gap-2 p-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 hover:text-gold-primary text-xs font-semibold"
+            >
+              <Heart className="w-4 h-4 text-rose-500" />
+              <span>المفضلة</span>
+              {wishlistCount > 0 && (
+                <span className="bg-badge-red text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+          </div>
+
           <div className="flex flex-col">
             {navLinkBefore.map((nav, index) => (
               <Link

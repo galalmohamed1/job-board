@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Product } from '@/types/product';
 import ProductCard from './productCart';
 import BannerProduct from './bannerProduct';
+import { useShop } from '@/context/ShopContext';
 import {
   ShoppingBag,
   SlidersHorizontal,
@@ -15,26 +16,13 @@ import {
   Home,
   ChevronRight as ChevronRightBreadcrumb,
   ChevronDown,
+  ImageIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { toast } from 'react-toastify';
 
 /* ─── Mock Data ─────────────────────────────────────────────────── */
-const mockProducts: Product[] = [
-  { _id: '1', title: 'سماعات رأس لاسلكية', slug: 'p1', discription: '', price: 3000, discountPrice: 2550, image: [{ public_id: 'p1', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P1' }], category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' }, subcategory: { _id: 's1', name: 'سماعات', slug: 'headphones' }, averageRating: 4, numReviews: 124, sizes: [], colors: ['black'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 15, __v: 0 },
-  { _id: '2', title: 'ساعة ذكية سامسونج', slug: 'p2', discription: '', price: 2950, image: [{ public_id: 'p2', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P2' }], category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' }, subcategory: { _id: 's2', name: 'ساعات', slug: 'watches' }, averageRating: 5, numReviews: 98, sizes: [], colors: ['black'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 30, __v: 0 },
-  { _id: '3', title: 'حقيبة ظهر متعددة الاستخدام', slug: 'p3', discription: '', price: 850, image: [{ public_id: 'p3', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P3' }], category: { _id: 'c2', name: 'ملابس وأزياء', slug: 'fashion' }, subcategory: { _id: 's3', name: 'حقائب', slug: 'bags' }, averageRating: 5, numReviews: 76, sizes: [], colors: ['black'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 0, __v: 0 },
-  { _id: '4', title: 'خلاط كهربائي', slug: 'p4', discription: '', price: 1680, image: [{ public_id: 'p4', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P4' }], category: { _id: 'c3', name: 'أجهزة منزلية', slug: 'appliances' }, subcategory: { _id: 's4', name: 'مطبخ', slug: 'kitchen' }, averageRating: 3, numReviews: 82, sizes: [], colors: ['silver'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 10, __v: 0 },
-  { _id: '5', title: 'شاشة كمبيوتر 24 بوصة', slug: 'p5', discription: '', price: 3500, discountPrice: 2800, image: [{ public_id: 'p5', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P5' }], category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' }, subcategory: { _id: 's5', name: 'شاشات', slug: 'monitors' }, averageRating: 4, numReviews: 54, sizes: [], colors: ['black'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 7, __v: 0 },
-  { _id: '6', title: 'سماعات أذن لاسلكية', slug: 'p6', discription: '', price: 1250, image: [{ public_id: 'p6', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P6' }], category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' }, subcategory: { _id: 's1', name: 'سماعات', slug: 'headphones' }, averageRating: 4, numReviews: 89, sizes: [], colors: ['white'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 22, __v: 0 },
-  { _id: '7', title: 'حذاء رياضي', slug: 'p7', discription: '', price: 1260, discountPrice: 999, image: [{ public_id: 'p7', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P7' }], category: { _id: 'c2', name: 'ملابس وأزياء', slug: 'fashion' }, subcategory: { _id: 's6', name: 'أحذية', slug: 'shoes' }, averageRating: 3, numReviews: 67, sizes: ['40', '41', '42'], colors: ['blue'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 40, __v: 0 },
-  { _id: '8', title: 'ساعات ذكية رياضية', slug: 'p8', discription: '', price: 1750, image: [{ public_id: 'p8', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P8' }], category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' }, subcategory: { _id: 's2', name: 'ساعات', slug: 'watches' }, averageRating: 3, numReviews: 41, sizes: [], colors: ['black'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 18, __v: 0 },
-  { _id: '9', title: 'تابلت 10 بوصة', slug: 'p9', discription: '', price: 4500, image: [{ public_id: 'p9', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P9' }], category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' }, subcategory: { _id: 's7', name: 'تابلت', slug: 'tablets' }, averageRating: 4, numReviews: 38, sizes: [], colors: ['black'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 12, __v: 0 },
-  { _id: '10', title: 'زجاجة حرارية', slug: 'p10', discription: '', price: 550, discountPrice: 467, image: [{ public_id: 'p10', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P10' }], category: { _id: 'c4', name: 'مستلزمات رياضية', slug: 'sports' }, subcategory: { _id: 's8', name: 'إكسسوارات', slug: 'accessories' }, averageRating: 4, numReviews: 55, sizes: [], colors: ['silver'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 60, __v: 0 },
-  { _id: '11', title: 'ماوس لاسلكي', slug: 'p11', discription: '', price: 450, image: [{ public_id: 'p11', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P11' }], category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' }, subcategory: { _id: 's9', name: 'إكسسوارات كمبيوتر', slug: 'pc-accessories' }, averageRating: 4, numReviews: 92, sizes: [], colors: ['black'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 35, __v: 0 },
-  { _id: '12', title: 'مكبر صوت ذكي', slug: 'p12', discription: '', price: 1200, image: [{ public_id: 'p12', secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=P12' }], category: { _id: 'c1', name: 'إلكترونيات', slug: 'electronics' }, subcategory: { _id: 's10', name: 'صوتيات', slug: 'audio' }, averageRating: 4, numReviews: 73, sizes: [], colors: ['black'], isFeatured: false, isActive: true, isDeleted: false, createdAt: '', updatedAt: '', stock: 25, __v: 0 },
-];
-
 const CATEGORIES = [
   'جميع الأقسام',
   'إلكترونيات',
@@ -103,6 +91,7 @@ function FilterBody({
   onApply,
   filteredCount,
 }: FilterBodyProps) {
+
   return (
     <div>
       {/* Categories */}
@@ -239,6 +228,7 @@ function FilterBody({
 
 /* ─── Main Component ─────────────────────────────────────────────── */
 export default function ProductPage() {
+  const { products, addToCart } = useShop();
   const [selectedCategory, setSelectedCategory] = useState('جميع الأقسام');
   const [priceRange, setPriceRange] = useState<[number, number]>([50, 5000]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
@@ -248,22 +238,31 @@ export default function ProductPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  const productList = Array.isArray(products) ? products : [];
+  const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? '';
+  const imgSrc = (url?: string) => !url ? '' : url.startsWith('http') || url.startsWith('data:') ? url : `${API_ORIGIN}${url}`;
+
   /* ── Filter & Sort ── */
-  const filtered = mockProducts
+  const getProductFinalPrice = (p: Product) =>
+    p.discountPrice != null && p.discountPrice > 0 && p.discountPrice < p.price
+      ? p.discountPrice
+      : p.price;
+
+  const filtered = productList
     .filter((p) =>
-      selectedCategory === 'جميع الأقسام' || p.category?.name === selectedCategory
+      selectedCategory === 'جميع الأقسام' || p.category?.title === selectedCategory
     )
     .filter((p) => {
-      const fp = p.discountPrice && p.discountPrice < p.price ? p.discountPrice : p.price;
+      const fp = getProductFinalPrice(p);
       return fp >= priceRange[0] && fp <= priceRange[1];
     })
-    .filter((p) => p.averageRating >= minRating)
+    .filter((p) => (p.averageRating ?? 0) >= minRating)
     .sort((a, b) => {
-      if (sortBy === 'price-asc') return (a.discountPrice ?? a.price) - (b.discountPrice ?? b.price);
-      if (sortBy === 'price-desc') return (b.discountPrice ?? b.price) - (a.discountPrice ?? a.price);
-      if (sortBy === 'rating') return b.averageRating - a.averageRating;
-      if (sortBy === 'newest') return b._id.localeCompare(a._id);
-      return b.numReviews - a.numReviews;
+      if (sortBy === 'price-asc') return getProductFinalPrice(a) - getProductFinalPrice(b);
+      if (sortBy === 'price-desc') return getProductFinalPrice(b) - getProductFinalPrice(a);
+      if (sortBy === 'rating') return (b.averageRating ?? 0) - (a.averageRating ?? 0);
+      if (sortBy === 'newest') return (b._id ?? '').localeCompare(a._id ?? '');
+      return (b.numReviews ?? 0) - (a.numReviews ?? 0);
     });
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -516,40 +515,62 @@ export default function ProductPage() {
               /* List View */
               <div className="flex flex-col gap-3">
                 {paginated.map((product) => {
-                  const fp = product.discountPrice && product.discountPrice < product.price
-                    ? product.discountPrice : product.price;
+                  const hasDiscount =
+                    product.discountPrice != null &&
+                    product.discountPrice > 0 &&
+                    product.discountPrice < product.price;
+                  const fp = hasDiscount ? product.discountPrice : product.price;
+
                   return (
                     <div
                       key={product._id}
-                      className="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow"
+                      className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between gap-4 shadow-sm hover:shadow-md transition-shadow"
                     >
-                      <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                        <Image
-                          src={product.image[0]?.secure_url}
-                          alt={product.title}
-                          fill
-                          sizes="80px"
-                          className="object-cover"
-                          unoptimized
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-primary text-sm mb-1 truncate">{product.title}</h3>
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <StarRow rating={product.averageRating} />
-                          <span className="text-xs text-slate-400">({product.numReviews})</span>
+                      <Link
+                        href={`/product/${product._id}`}
+                        className="flex items-center gap-4 flex-1 min-w-0 group"
+                      >
+                        <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+                          {product.images?.[0]?.secure_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={imgSrc(product.images[0].secure_url)} alt={product.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <ImageIcon className="w-4 h-4 text-slate-400" />
+                            )}
                         </div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-extrabold text-primary">
-                            {fp} <small className="text-xs text-[#D49B35]">ج.م</small>
-                          </span>
-                          {product.discountPrice && product.discountPrice < product.price && (
-                            <del className="text-xs text-slate-400">{product.price} ج.م</del>
-                          )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-primary text-sm mb-1 truncate group-hover:text-[#D49B35] transition-colors">
+                            {product.title}
+                          </h3>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <StarRow rating={product.averageRating ?? 0} />
+                            <span className="text-xs text-slate-400">({product.numReviews ?? 0})</span>
+                          </div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-extrabold text-primary">
+                              {fp} <small className="text-xs text-[#D49B35]">ج.م</small>
+                            </span>
+                            {hasDiscount && (
+                              <del className="text-xs text-slate-400">{product.price} ج.م</del>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      </Link>
+
                       <button
                         type="button"
+                        onClick={async () => {
+                          try {
+                            const ok = await addToCart(product._id, 1);
+                            if (ok) {
+                              toast.success(`تمت إضافة "${product.title.slice(0, 24)}" إلى السلة بنجاح`);
+                            } else {
+                              toast.info("يرجى تسجيل الدخول أولاً لإضافة المنتج إلى السلة");
+                            }
+                          } catch {
+                            toast.error("حدث خطأ أثناء إضافة المنتج إلى السلة");
+                          }
+                        }}
                         className="shrink-0 flex items-center gap-1.5 bg-[#BA874E] hover:bg-[#ba874eda] text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer"
                       >
                         <ShoppingBag className="w-4 h-4" />
