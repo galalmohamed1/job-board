@@ -1,4 +1,5 @@
-import ProductsData from '@/components/admin/ProductsData';
+import ProductsData from "@/components/admin/ProductData";
+
 
 export const metadata = {
   title: 'إدارة وإضافة المنتجات | لوحة الإدارة',
