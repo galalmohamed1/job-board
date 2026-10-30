@@ -182,13 +182,13 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   // ── Cart actions ────────────────────────────────────────────────────────────
 
   const addToCart = useCallback(
-    async (productId: string, quantity = 1, size?: string, color?: string): Promise<boolean> => {
-      const res = await AddToCart({ productId, quantity, size, color });
-      if (res.success) await refreshCart();
-      return res.success;
-    },
-    [refreshCart],
-  );
+  async (productId: string, quantity = 1, size?: string, color?: string) => {
+    const res = await AddToCart({ productId, quantity, size, color });
+    if (res.success) await refreshCart();
+    return res.success;
+  },
+  [refreshCart],
+);
 
   const removeFromCart = useCallback(
     async (productId: string, size?: string, color?: string) => {

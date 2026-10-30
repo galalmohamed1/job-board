@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-toastify';
+import { useRouter } from 'next/navigation';
 
 /* ─── Constants ─────────────────────────────────────────────────── */
 const ALL_SUBS = 'الكل';
@@ -231,6 +232,7 @@ function FilterBody({
 /* ─── Main Component ─────────────────────────────────────────────── */
 export default function ProductPage() {
   const { products, addToCart } = useShop();
+  const router = useRouter();
 
   const [selectedSub, setSelectedSub] = useState<string>(ALL_SUBS);
   const [priceRange, setPriceRange] = useState<[number, number]>([50, 5000]);
@@ -572,12 +574,21 @@ export default function ProductPage() {
                       <button
                         type="button"
                         onClick={async () => {
+                          const needsOptions =
+                            (product.colors?.length ?? 0) > 0 || (product.sizes?.length ?? 0) > 0;
+
+                          if (needsOptions) {
+                            toast.info('اختر المقاس واللون أولاً');
+                            router.push(`/product/${product._id}`);
+                            return;
+                          }
+
                           try {
-                            const ok = await addToCart(product._id, 1);
-                            if (ok) {
+                            const res = await addToCart(product._id, 1);
+                            if (res) {
                               toast.success(`تمت إضافة "${product.title.slice(0, 24)}" إلى السلة بنجاح`);
                             } else {
-                              toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتج إلى السلة');
+                              toast.error('تعذّرت الإضافة إلى السلة');
                             }
                           } catch {
                             toast.error('حدث خطأ أثناء إضافة المنتج إلى السلة');

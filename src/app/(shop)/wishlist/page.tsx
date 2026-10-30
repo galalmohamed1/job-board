@@ -23,6 +23,7 @@ import {
 import { Product } from '@/types/product';
 import { useShop } from '@/context/ShopContext';
 import { toast } from 'react-toastify';
+import { useRouter } from 'next/navigation';
 
 export default function WishlistPage() {
   const {
@@ -81,6 +82,7 @@ export default function WishlistPage() {
     return matched;
   }, [wishlist, allAvailableProducts, demoActive]);
 
+  const router = useRouter();
   // Remove single item
   const handleRemove = async (productId: string, title: string) => {
     if (demoActive) {
@@ -93,20 +95,26 @@ export default function WishlistPage() {
 
   // Add single item to cart
   const handleAddToCart = async (product: Product) => {
-    setAddingId(product._id);
-    try {
-      const ok = await addToCart(product._id, 1);
-      if (ok) {
-        toast.success(`تمت إضافة "${product.title.slice(0, 20)}..." إلى السلة بنجاح`);
-      } else {
-        toast.info("يرجى تسجيل الدخول أولاً لإضافة المنتج إلى السلة");
-      }
-    } catch {
-      toast.error("حدث خطأ أثناء الإضافة إلى السلة");
-    } finally {
-      setAddingId(null);
+  if ((product.colors?.length ?? 0) > 0) {
+    toast.info("اختر صورة المنتج (اللون) أولاً");
+    router.push(`/product/${product._id}`);
+    return;
+  }
+
+  setAddingId(product._id);
+  try {
+    const res = await addToCart(product._id, 1, product.sizes?.[0]);
+    if (res) {
+      toast.success(`تمت إضافة "${product.title.slice(0, 20)}" إلى السلة بنجاح`);
+    } else {
+      toast.error("تعذّرت الإضافة إلى السلة");
     }
-  };
+  } catch {
+    toast.error("حدث خطأ أثناء الإضافة إلى السلة");
+  } finally {
+    setAddingId(null);
+  }
+};
 
   // Move all in-stock items to cart
   const handleMoveAllToCart = async () => {

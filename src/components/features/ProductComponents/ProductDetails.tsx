@@ -273,26 +273,34 @@ export default function ProductDetailPage({ id, slug, initialProduct }: Props) {
   };
 
   const handleAddToCart = async () => {
-    if (!product) return;
-    if (product.stock <= 0) {
-      toast.error("هذا المنتج غير متوفر في المخزون حالياً");
-      return;
-    }
+  if (!product) return;
+  if (product.stock <= 0) {
+    toast.error("هذا المنتج غير متوفر في المخزون حالياً");
+    return;
+  }
+  if ((product.colors?.length ?? 0) > 0 && !selectedColor) {
+    toast.info("اختر صورة المنتج (اللون) أولاً");
+    return;
+  }
+  if ((product.sizes?.length ?? 0) > 0 && !selectedSize) {
+    toast.info("اختر المقاس أولاً");
+    return;
+  }
 
-    setIsAdding(true);
-    try {
-      const ok = await addToCart(product._id, quantity, selectedSize, selectedColor);
-      if (ok) {
-        toast.success(`تمت إضافة ${quantity} من "${product.title.slice(0, 24)}" إلى السلة بنجاح`);
-      } else {
-        toast.info("يرجى تسجيل الدخول أولاً لإضافة المنتج إلى السلة");
-      }
-    } catch {
-      toast.error("حدث خطأ أثناء إضافة المنتج إلى السلة");
-    } finally {
-      setIsAdding(false);
+  setIsAdding(true);
+  try {
+    const res = await addToCart(product._id, quantity, selectedSize, selectedColor);
+    if (res) {
+      toast.success(`تمت إضافة ${quantity} من "${product.title.slice(0, 24)}" إلى السلة بنجاح`);
+    } else {
+      toast.error("تعذّرت الإضافة إلى السلة");
     }
-  };
+  } catch {
+    toast.error("حدث خطأ أثناء إضافة المنتج إلى السلة");
+  } finally {
+    setIsAdding(false);
+  }
+};
 
   const handleToggleWishlist = async () => {
     if (!product) return;

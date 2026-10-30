@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useShop } from "@/context/ShopContext";
 import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 interface ProductCardProps {
   product: Product;
@@ -31,6 +32,7 @@ function Stars({ rating }: { rating: number }) {
 
 export default function ProductCard({ product }: ProductCardProps) {
   const { addToCart, toggleWishlist, isWishlisted } = useShop();
+  const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
 
@@ -45,20 +47,28 @@ export default function ProductCard({ product }: ProductCardProps) {
   const isNew = !hasDiscount && !product.isFeatured && (product.stock ?? 0) > 20;
 
   const handleAddToCart = async () => {
-    setIsAdding(true);
-    try {
-      const ok = await addToCart(_id, 1);
-      if (ok) {
-        toast.success(`تمت إضافة "${title.slice(0, 24)}" إلى السلة بنجاح`);
-      } else {
-        toast.info("يرجى تسجيل الدخول أولاً لإضافة المنتج إلى السلة");
-      }
-    } catch {
-      toast.error("حدث خطأ أثناء إضافة المنتج إلى السلة");
-    } finally {
-      setIsAdding(false);
+  const needsOptions = (product.colors?.length ?? 0) > 0 || (product.sizes?.length ?? 0) > 0;
+
+  if (needsOptions) {
+    toast.info("اختر المقاس واللون أولاً");
+    router.push(`/product/${_id}`);
+    return;
+  }
+
+  setIsAdding(true);
+  try {
+    const res = await addToCart(_id, 1);
+    if (res) {
+      toast.success(`تمت إضافة "${title.slice(0, 24)}" إلى السلة بنجاح`);
+    } else {
+      toast.error("تعذّرت الإضافة إلى السلة");
     }
-  };
+  } catch {
+    toast.error("حدث خطأ أثناء إضافة المنتج إلى السلة");
+  } finally {
+    setIsAdding(false);
+  }
+};
 
   const handleToggleWishlist = async () => {
     setIsTogglingWishlist(true);
