@@ -323,7 +323,7 @@ export default function ProductsManager({
                     {existingImages.map((src, i) => (
                       <div key={i} className="w-20 h-20 rounded-xl overflow-hidden border border-slate-200">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={imgSrc(src)} alt="" className="w-full h-full object-cover" />
+                        <img src={src} alt="" className="w-full h-full object-cover" />
                       </div>
                     ))}
                   </div>
@@ -404,7 +404,7 @@ export default function ProductsManager({
                           <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden">
                             {product.images?.[0]?.secure_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={imgSrc(product.images[0].secure_url)} alt={product.title} className="w-full h-full object-cover" />
+                              <img src={product.images[0].secure_url} alt={product.title} className="w-full h-full object-cover" />
                             ) : (
                               <ImageIcon className="w-4 h-4 text-slate-400" />
                             )}

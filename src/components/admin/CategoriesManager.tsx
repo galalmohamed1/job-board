@@ -362,8 +362,7 @@ export default function CategoriesManager() {
                   className="group bg-slate-50 rounded-xl border border-slate-200 hover:border-[#D49B35]/50 hover:shadow-md transition-all overflow-hidden"
                 >
                   <div className="h-32 bg-slate-200 overflow-hidden relative">
-                    {typeof cat.image === 'object' && cat.image && 'secure_url' in cat.image && cat.image.secure_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                    {cat.image.secure_url ? (
                       <img
                         src={cat.image.secure_url}
                         alt={cat.title}
