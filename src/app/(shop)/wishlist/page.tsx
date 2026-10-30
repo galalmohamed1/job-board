@@ -18,149 +18,11 @@ import {
   ChevronRight,
   RefreshCw,
   Loader2,
+  ImageIcon,
 } from 'lucide-react';
 import { Product } from '@/types/product';
 import { useShop } from '@/context/ShopContext';
 import { toast } from 'react-toastify';
-
-/* ─── Mock Fallback Products for Demo/Testing ───────────────────── */
-const INITIAL_DEMO_PRODUCTS: Product[] = [
-  {
-    _id: 'w1',
-    title: 'سماعات رأس لاسلكية احترافية مع خاصية عزل الضوضاء',
-    slug: 'wireless-noise-cancelling-headphones',
-    description: 'صوت محيطي نقي، بطارية تدوم حتى 40 ساعة، مريحة للأذن طوال اليوم.',
-    discription: 'صوت محيطي نقي، بطارية تدوم حتى 40 ساعة، مريحة للأذن طوال اليوم.',
-    price: 3200,
-    discountPrice: 2650,
-    images: [
-      {
-        public_id: 'p1',
-        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Headphones',
-      },
-    ],
-    image: [
-      {
-        public_id: 'p1',
-        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Headphones',
-      },
-    ],
-    category: { _id: 'c1', title: 'إلكترونيات', name: 'إلكترونيات', slug: 'electronics' },
-    subcategory: [{ _id: 's1', name: 'سماعات', slug: 'headphones' }],
-    averageRating: 4.8,
-    numReviews: 124,
-    sizes: [],
-    colors: ['black', 'silver'],
-    isFeatured: true,
-    isActive: true,
-    isDeleted: false,
-    createdAt: '',
-    updatedAt: '',
-    stock: 18,
-    __v: 0,
-  },
-  {
-    _id: 'w2',
-    title: 'ساعة ذكية رياضية سامسونج - مقاومة للماء مع تتبع الصحة',
-    slug: 'samsung-smart-watch-waterproof',
-    description: 'شاشة AMOLED، حساس لقياس نبضات القلب، وبطارية ذكية تدوم أياماً.',
-    discription: 'شاشة AMOLED، حساس لقياس نبضات القلب، وبطارية ذكية تدوم أياماً.',
-    price: 3400,
-    discountPrice: 2950,
-    images: [
-      {
-        public_id: 'p2',
-        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=SmartWatch',
-      },
-    ],
-    image: [
-      {
-        public_id: 'p2',
-        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=SmartWatch',
-      },
-    ],
-    category: { _id: 'c1', title: 'إلكترونيات', name: 'إلكترونيات', slug: 'electronics' },
-    subcategory: [{ _id: 's2', name: 'ساعات ذكية', slug: 'watches' }],
-    averageRating: 4.9,
-    numReviews: 98,
-    sizes: [],
-    colors: ['black'],
-    isFeatured: true,
-    isActive: true,
-    isDeleted: false,
-    createdAt: '',
-    updatedAt: '',
-    stock: 24,
-    __v: 0,
-  },
-  {
-    _id: 'w3',
-    title: 'حقيبة ظهر عصرية متعددة الجيوب ومقاومة للماء للعمل والسفر',
-    slug: 'waterproof-travel-backpack',
-    description: 'سعة 25 لتر، مخرج USB للشحن، وحزام تثبيت على حقائب السفر.',
-    discription: 'سعة 25 لتر، مخرج USB للشحن، وحزام تثبيت على حقائب السفر.',
-    price: 850,
-    images: [
-      {
-        public_id: 'p3',
-        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Backpack',
-      },
-    ],
-    image: [
-      {
-        public_id: 'p3',
-        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Backpack',
-      },
-    ],
-    category: { _id: 'c2', title: 'ملابس وأزياء', name: 'ملابس وأزياء', slug: 'fashion' },
-    subcategory: [{ _id: 's3', name: 'حقائب', slug: 'bags' }],
-    averageRating: 4.6,
-    numReviews: 76,
-    sizes: [],
-    colors: ['grey', 'black'],
-    isFeatured: false,
-    isActive: true,
-    isDeleted: false,
-    createdAt: '',
-    updatedAt: '',
-    stock: 5,
-    __v: 0,
-  },
-  {
-    _id: 'w4',
-    title: 'شاشة ألعاب 24 بوصة IPS بدقة FHD ومعدل تحديث 144Hz',
-    slug: 'gaming-monitor-24-inch',
-    description: 'زمن استجابة 1ms، ألوان زاهية، تدعم FreeSync و G-Sync.',
-    discription: 'زمن استجابة 1ms، ألوان زاهية، تدعم FreeSync و G-Sync.',
-    price: 3800,
-    discountPrice: 3200,
-    images: [
-      {
-        public_id: 'p4',
-        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Monitor',
-      },
-    ],
-    image: [
-      {
-        public_id: 'p4',
-        secure_url: 'https://placehold.co/400x400/1e293b/ffffff?text=Monitor',
-      },
-    ],
-    category: { _id: 'c1', title: 'إلكترونيات', name: 'إلكترونيات', slug: 'electronics' },
-    subcategory: [{ _id: 's5', name: 'شاشات', slug: 'monitors' }],
-    averageRating: 4.7,
-    numReviews: 54,
-    sizes: [],
-    colors: ['black'],
-    isFeatured: false,
-    isActive: true,
-    isDeleted: false,
-    createdAt: '',
-    updatedAt: '',
-    stock: 0,
-    __v: 0,
-  },
-];
 
 export default function WishlistPage() {
   const {
@@ -176,14 +38,15 @@ export default function WishlistPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [demoActive, setDemoActive] = useState(false);
   const [addingId, setAddingId] = useState<string | null>(null);
+  const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? '';
+  const imgSrc = (url?: string) => !url ? '' : url.startsWith('http') || url.startsWith('data:') ? url : `${API_ORIGIN}${url}`;
 
   // Map wishlist IDs to product items
   const allAvailableProducts = useMemo(() => {
-    return [...products, ...INITIAL_DEMO_PRODUCTS];
+    return [...products];
   }, [products]);
 
   const items: Product[] = useMemo(() => {
-    if (demoActive) return INITIAL_DEMO_PRODUCTS;
     if (wishlist.length === 0) return [];
     
     // Find matching products
@@ -498,17 +361,14 @@ export default function WishlistPage() {
                         </button>
                       </div>
 
-                      <Link href={`/product`} className="block">
+                      <Link href={`/product/${product._id}`} className="block">
                         <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-slate-50 flex items-center justify-center mb-3">
-                          {product.image?.[0]?.secure_url && (
-                            <Image
-                              src={product.image[0].secure_url}
-                              alt={product.title}
-                              fill
-                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 25vw"
-                              className="object-contain p-3 transition-transform duration-500 group-hover:scale-105"
-                            />
-                          )}
+                          {product.images?.[0]?.secure_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={imgSrc(product.images[0].secure_url)} alt={product.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <ImageIcon className="w-4 h-4 text-slate-400" />
+                            )}
                           {!inStock && (
                             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex items-center justify-center">
                               <span className="rounded-lg bg-red-600 px-3 py-1 text-xs font-black text-white shadow-md">
@@ -606,15 +466,12 @@ export default function WishlistPage() {
                     >
                       <div className="flex items-center gap-4 w-full sm:w-auto">
                         <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-xl bg-slate-50 flex items-center justify-center">
-                          {product.image?.[0]?.secure_url && (
-                            <Image
-                              src={product.image[0].secure_url}
-                              alt={product.title}
-                              fill
-                              sizes="96px"
-                              className="object-contain p-2"
-                            />
-                          )}
+                          {product.images?.[0]?.secure_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={imgSrc(product.images[0].secure_url)} alt={product.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <ImageIcon className="w-4 h-4 text-slate-400" />
+                            )}
                         </div>
 
                         <div className="flex-1">

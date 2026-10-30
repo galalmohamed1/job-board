@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Product } from '@/types/product';
 import ProductCard from './productCart';
 import BannerProduct from './bannerProduct';
 import { useShop } from '@/context/ShopContext';
-import { getDetailsSubCategories, getSubCategories } from '@/app/api/services/category.services';
 import {
   ShoppingBag,
   SlidersHorizontal,
@@ -20,10 +19,11 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { toast } from 'react-toastify';
 
-/* ─── Mock Data ─────────────────────────────────────────────────── */
+/* ─── Constants ─────────────────────────────────────────────────── */
+const ALL_SUBS = 'الكل';
+
 const SORT_OPTIONS = [
   { value: 'best-seller', label: 'الأكثر مبيعاً' },
   { value: 'newest', label: 'الأحدث' },
@@ -32,6 +32,21 @@ const SORT_OPTIONS = [
   { value: 'rating', label: 'الأعلى تقييماً' },
 ];
 const ITEMS_PER_PAGE = 8;
+
+/* ─── Helpers ────────────────────────────────────────────────────── */
+type SubOption = { id: string; name: string };
+
+// بيدعم subCategory و subcategory، وواحد أو أكتر
+const getProductSubCategories = (p: Product): SubOption[] => {
+  const raw = (p as any).subCategory ?? (p as any).subcategory;
+  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  return list
+    .map((s: any) => ({
+      id: typeof s === 'string' ? s : String(s?._id ?? ''),
+      name: typeof s === 'string' ? '' : String(s?.name ?? s?.title ?? '').trim(),
+    }))
+    .filter((s) => s.id);
+};
 
 /* ─── Stars helper ───────────────────────────────────────────────── */
 function StarRow({ rating }: { rating: number }) {
@@ -53,14 +68,11 @@ function StarRow({ rating }: { rating: number }) {
 
 /* ─── Filter Content Component ───────────────────────────────────── */
 interface FilterBodyProps {
-  categories: string[];
-  brands: string[];
-  selectedCategory: string;
-  setSelectedCategory: (cat: string) => void;
+  subCategories: SubOption[];
+  selectedSub: string;
+  setSelectedSub: (id: string) => void;
   priceRange: [number, number];
   setPriceRange: (range: [number, number]) => void;
-  selectedBrands: string[];
-  toggleBrand: (brand: string) => void;
   minRating: number;
   setMinRating: (r: number) => void;
   resetFilters: () => void;
@@ -70,14 +82,11 @@ interface FilterBodyProps {
 }
 
 function FilterBody({
-  categories,
-  brands,
-  selectedCategory,
-  setSelectedCategory,
+  subCategories,
+  selectedSub,
+  setSelectedSub,
   priceRange,
   setPriceRange,
-  selectedBrands,
-  toggleBrand,
   minRating,
   setMinRating,
   resetFilters,
@@ -85,40 +94,64 @@ function FilterBody({
   onApply,
   filteredCount,
 }: FilterBodyProps) {
-
   return (
     <div>
-      {/* Categories */}
-      <div className="mb-5">
-        <h3 className="font-bold text-primary text-sm mb-3">الأقسام</h3>
-        <ul className="space-y-2.5">
-          {categories.map((cat) => (
-            <li key={cat}>
+      {/* القسم الفرعي */}
+      {subCategories.length > 0 && (
+        <div className="mb-5">
+          <h3 className="font-bold text-primary text-sm mb-3">الأقسام</h3>
+          <ul className="space-y-2.5 max-h-72 overflow-y-auto pl-1">
+            <li>
               <label className="flex items-center gap-2.5 cursor-pointer group">
                 <input
                   type="radio"
-                  name="category-input"
-                  checked={selectedCategory === cat}
+                  name="sub-input"
+                  checked={selectedSub === ALL_SUBS}
                   onChange={() => {
-                    setSelectedCategory(cat);
+                    setSelectedSub(ALL_SUBS);
                     setCurrentPage(1);
                   }}
                   className="accent-[#D49B35] w-4 h-4 cursor-pointer"
                 />
                 <span
                   className={`text-sm transition-colors ${
-                    selectedCategory === cat
+                    selectedSub === ALL_SUBS
                       ? 'text-[#D49B35] font-bold'
                       : 'text-slate-600 group-hover:text-primary'
                   }`}
                 >
-                  {cat}
+                  {ALL_SUBS}
                 </span>
               </label>
             </li>
-          ))}
-        </ul>
-      </div>
+            {subCategories.map((s) => (
+              <li key={s.id}>
+                <label className="flex items-center gap-2.5 cursor-pointer group">
+                  <input
+                    type="radio"
+                    name="sub-input"
+                    checked={selectedSub === s.id}
+                    onChange={() => {
+                      setSelectedSub(s.id);
+                      setCurrentPage(1);
+                    }}
+                    className="accent-[#D49B35] w-4 h-4 cursor-pointer"
+                  />
+                  <span
+                    className={`text-sm transition-colors ${
+                      selectedSub === s.id
+                        ? 'text-[#D49B35] font-bold'
+                        : 'text-slate-600 group-hover:text-primary'
+                    }`}
+                  >
+                    {s.name}
+                  </span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Price Range */}
       <div className="mb-5 pt-4 border-t border-slate-100">
@@ -140,33 +173,6 @@ function FilterBody({
           className="w-full accent-[#D49B35] cursor-pointer"
         />
       </div>
-
-      {/* Brand / Subcategories */}
-      {brands.length > 0 && (
-        <div className="mb-5 pt-4 border-t border-slate-100">
-          <h3 className="font-bold text-primary text-sm mb-3">الأقسام الفرعية</h3>
-          <ul className="space-y-2.5 max-h-56 overflow-y-auto pl-1">
-            {brands.map((brand) => (
-              <li key={brand}>
-                <label className="flex items-center gap-2.5 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={selectedBrands.includes(brand)}
-                    onChange={() => {
-                      toggleBrand(brand);
-                      setCurrentPage(1);
-                    }}
-                    className="accent-[#D49B35] w-4 h-4 rounded cursor-pointer"
-                  />
-                  <span className="text-sm text-slate-600 group-hover:text-primary transition-colors">
-                    {brand}
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       {/* Rating */}
       <div className="mb-5 pt-4 border-t border-slate-100">
@@ -225,49 +231,31 @@ function FilterBody({
 /* ─── Main Component ─────────────────────────────────────────────── */
 export default function ProductPage() {
   const { products, addToCart } = useShop();
-  const [categories, setCategories] = useState<string[]>(['جميع الأقسام']);
-  const [brands, setBrands] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('جميع الأقسام');
+
+  const [selectedSub, setSelectedSub] = useState<string>(ALL_SUBS);
   const [priceRange, setPriceRange] = useState<[number, number]>([50, 5000]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState('best-seller');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [currentPage, setCurrentPage] = useState(1);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  useEffect(() => {
-    async function loadFilters() {
-      try {
-        const [catsData, subsData] = await Promise.all([
-          getSubCategories(),
-          getDetailsSubCategories(),
-        ]);
+  const productList: Product[] = Array.isArray(products) ? products : [];
 
-        if (catsData && Array.isArray(catsData)) {
-          const catTitles = catsData
-            .map((c) => c.name)
-            .filter((t): t is string => Boolean(t && t.trim()));
-          setCategories(['جميع الأقسام', ...Array.from(new Set(catTitles))]);
-        }
+  /* ── خيارات القسم الفرعي (بتتجمع من المنتجات) ── */
+  const subCategoryOptions = useMemo<SubOption[]>(() => {
+    const map = new Map<string, string>();
+    (Array.isArray(products) ? products : []).forEach((p: Product) => {
+      getProductSubCategories(p).forEach((s) => {
+        if (s.name) map.set(s.id, s.name);
+      });
+    });
+    return Array.from(map, ([id, name]) => ({ id, name }));
+  }, [products]);
 
-        if (subsData && Array.isArray(subsData)) {
-          const subNames = subsData
-            .map((s) => s.name)
-            .filter((n): n is string => Boolean(n && n.trim()));
-          setBrands(Array.from(new Set(subNames)));
-        }
-      } catch (err) {
-        console.error('Failed to load categories/subcategories:', err);
-      }
-    }
-
-    loadFilters();
-  }, []);
-
-  const productList = Array.isArray(products) ? products : [];
   const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN ?? '';
-  const imgSrc = (url?: string) => !url ? '' : url.startsWith('http') || url.startsWith('data:') ? url : `${API_ORIGIN}${url}`;
+  const imgSrc = (url?: string) =>
+    !url ? '' : url.startsWith('http') || url.startsWith('data:') ? url : `${API_ORIGIN}${url}`;
 
   /* ── Filter & Sort ── */
   const getProductFinalPrice = (p: Product) =>
@@ -276,21 +264,9 @@ export default function ProductPage() {
       : p.price;
 
   const filtered = productList
-    .filter((p) =>
-      selectedCategory === 'جميع الأقسام' || p.category?.title === selectedCategory
-    )
     .filter((p) => {
-      if (selectedBrands.length === 0) return true;
-      if (Array.isArray(p.subcategory)) {
-        return p.subcategory.some((sub: any) =>
-          selectedBrands.includes(typeof sub === 'string' ? sub : sub?.name)
-        );
-      }
-      if (p.subcategory && typeof p.subcategory === 'object') {
-        const subName = (p.subcategory as any).name;
-        return selectedBrands.includes(subName);
-      }
-      return false;
+      if (selectedSub === ALL_SUBS) return true;
+      return getProductSubCategories(p).some((s) => s.id === selectedSub);
     })
     .filter((p) => {
       const fp = getProductFinalPrice(p);
@@ -312,20 +288,13 @@ export default function ProductPage() {
   );
 
   const activeFiltersCount =
-    (selectedCategory !== 'جميع الأقسام' ? 1 : 0) +
+    (selectedSub !== ALL_SUBS ? 1 : 0) +
     (priceRange[0] !== 50 || priceRange[1] !== 5000 ? 1 : 0) +
-    selectedBrands.length +
     (minRating > 0 ? 1 : 0);
 
-  const toggleBrand = (brand: string) =>
-    setSelectedBrands((prev) =>
-      prev.includes(brand) ? prev.filter((b) => b !== brand) : [...prev, brand]
-    );
-
   const resetFilters = () => {
-    setSelectedCategory('جميع الأقسام');
+    setSelectedSub(ALL_SUBS);
     setPriceRange([50, 5000]);
-    setSelectedBrands([]);
     setMinRating(0);
     setCurrentPage(1);
   };
@@ -352,9 +321,9 @@ export default function ProductPage() {
         <div className="flex gap-6 items-start">
           {/* ════════════ Products Area ════════════ */}
           <div className="flex-1 min-w-0">
-            {/* ── Mobile Toolbar (Row 1 from design) ── */}
+            {/* ── Mobile Toolbar ── */}
             <div className="lg:hidden flex items-center justify-between gap-2.5 mb-3 bg-white rounded-xl border border-slate-200 px-3 py-2.5 shadow-xs">
-              {/* View Mode Switcher (Left) */}
+              {/* View Mode Switcher */}
               <div className="flex items-center rounded-xl border border-slate-200 bg-white p-0.5">
                 <button
                   type="button"
@@ -382,7 +351,7 @@ export default function ProductPage() {
                 </button>
               </div>
 
-              {/* Sort Dropdown (Center) */}
+              {/* Sort Dropdown */}
               <div className="relative flex-1 max-w-[200px]">
                 <select
                   value={sortBy}
@@ -402,7 +371,7 @@ export default function ProductPage() {
                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
               </div>
 
-              {/* Filter Button (Right) */}
+              {/* Filter Button */}
               <button
                 type="button"
                 onClick={() => setIsMobileFilterOpen((v) => !v)}
@@ -422,7 +391,7 @@ export default function ProductPage() {
               </button>
             </div>
 
-            {/* ── Mobile Filter Toggle Bar (Row 2 from design) ── */}
+            {/* ── Mobile Filter Toggle Bar ── */}
             <div className="lg:hidden mb-5">
               <button
                 type="button"
@@ -452,14 +421,11 @@ export default function ProductPage() {
               {isMobileFilterOpen && (
                 <div className="mt-3 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
                   <FilterBody
-                    categories={categories}
-                    brands={brands}
-                    selectedCategory={selectedCategory}
-                    setSelectedCategory={setSelectedCategory}
+                    subCategories={subCategoryOptions}
+                    selectedSub={selectedSub}
+                    setSelectedSub={setSelectedSub}
                     priceRange={priceRange}
                     setPriceRange={setPriceRange}
-                    selectedBrands={selectedBrands}
-                    toggleBrand={toggleBrand}
                     minRating={minRating}
                     setMinRating={setMinRating}
                     resetFilters={resetFilters}
@@ -532,7 +498,7 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Empty state */}
+            {/* Empty / Grid / List */}
             {paginated.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-slate-400">
                 <ShoppingBag className="w-16 h-16 mb-4 opacity-30" />
@@ -572,13 +538,17 @@ export default function ProductPage() {
                         href={`/product/${product._id}`}
                         className="flex items-center gap-4 flex-1 min-w-0 group"
                       >
-                        <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+                        <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 flex items-center justify-center">
                           {product.images?.[0]?.secure_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={imgSrc(product.images[0].secure_url)} alt={product.title} className="w-full h-full object-cover" />
-                            ) : (
-                              <ImageIcon className="w-4 h-4 text-slate-400" />
-                            )}
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={imgSrc(product.images[0].secure_url)}
+                              alt={product.title}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <ImageIcon className="w-4 h-4 text-slate-400" />
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-primary text-sm mb-1 truncate group-hover:text-[#D49B35] transition-colors">
@@ -607,10 +577,10 @@ export default function ProductPage() {
                             if (ok) {
                               toast.success(`تمت إضافة "${product.title.slice(0, 24)}" إلى السلة بنجاح`);
                             } else {
-                              toast.info("يرجى تسجيل الدخول أولاً لإضافة المنتج إلى السلة");
+                              toast.info('يرجى تسجيل الدخول أولاً لإضافة المنتج إلى السلة');
                             }
                           } catch {
-                            toast.error("حدث خطأ أثناء إضافة المنتج إلى السلة");
+                            toast.error('حدث خطأ أثناء إضافة المنتج إلى السلة');
                           }
                         }}
                         className="shrink-0 flex items-center gap-1.5 bg-[#BA874E] hover:bg-[#ba874eda] text-white text-sm font-bold px-4 py-2 rounded-lg transition-colors cursor-pointer"
@@ -627,7 +597,6 @@ export default function ProductPage() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center items-center gap-1.5 mt-8" dir="ltr">
-                {/* Prev */}
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -637,7 +606,6 @@ export default function ProductPage() {
                   <ChevronLeft className="w-4 h-4" />
                 </button>
 
-                {/* Pages */}
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                   <button
                     key={page}
@@ -653,7 +621,6 @@ export default function ProductPage() {
                   </button>
                 ))}
 
-                {/* Next */}
                 <button
                   type="button"
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
@@ -669,21 +636,17 @@ export default function ProductPage() {
           {/* ════════════ Sidebar (Desktop Only) ════════════ */}
           <aside className="hidden lg:flex flex-col gap-5 w-64 shrink-0 sticky top-4">
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-              {/* Header */}
               <div className="flex items-center gap-2 mb-5 pb-3 border-b border-slate-100">
                 <SlidersHorizontal className="w-4 h-4 text-[#D49B35]" />
                 <h2 className="font-black text-primary text-base">تصفية النتائج</h2>
               </div>
 
               <FilterBody
-                categories={categories}
-                brands={brands}
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
+                subCategories={subCategoryOptions}
+                selectedSub={selectedSub}
+                setSelectedSub={setSelectedSub}
                 priceRange={priceRange}
                 setPriceRange={setPriceRange}
-                selectedBrands={selectedBrands}
-                toggleBrand={toggleBrand}
                 minRating={minRating}
                 setMinRating={setMinRating}
                 resetFilters={resetFilters}

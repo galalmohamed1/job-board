@@ -25,6 +25,8 @@ import {
   RemoveFromWishlist,
 } from "@/action/wishlist.action";
 import { getAllProducts } from "@/app/api/services/product.services";
+import { Category } from "@/types/category";
+import { getCategories } from "@/app/api/services/category.services";
 
 // ─── Context Shape ────────────────────────────────────────────────────────────
 
@@ -33,6 +35,9 @@ interface ShopContextType {
   products: Product[];
   isProductsLoading: boolean;
 
+  // Category
+  categories: Category[];
+  isCategoriesLoading: boolean;
   // Cart
   cart: CartItem[];
   cartId: string | null;
@@ -67,6 +72,10 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [isProductsLoading, setIsProductsLoading] = useState(true);
 
+  //Category 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true);
+
   // Cart
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartId, setCartId] = useState<string | null>(null);
@@ -95,6 +104,21 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
       }
     })();
     return () => { alive = false; };
+  }, []);
+  // ── Fetch Category (public, always) ────────────────────────────────────────
+  useEffect(() => {
+    const fetchCategort = async () => {
+      try {
+        const data = await getCategories();
+        console.log("CATEGORIES", data);
+        if (Array.isArray(data)) setCategories(data);
+      } catch (error) {
+        console.error("Failed to fetch Categort:", error);
+      } finally {
+        setIsCategoriesLoading(false);
+      }
+    };
+    fetchCategort();
   }, []);
 
   // ── Refresh cart ────────────────────────────────────────────────────────────
@@ -253,9 +277,12 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
       isWishlisted,
       toggleWishlist,
       refreshWishlist,
+      categories,
+      isCategoriesLoading
     }),
     [
       products, isProductsLoading,
+      categories, isCategoriesLoading,
       cart, cartId, cartCount, cartSubtotal, isCartLoading,
       addToCart, removeFromCart, updateQuantity, updatingItemId, refreshCart,
       wishlist, wishlistCount, isWishlistLoading, isWishlisted, toggleWishlist, refreshWishlist,

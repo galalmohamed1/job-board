@@ -39,7 +39,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { cartCount, wishlistCount } = useShop();
   const [isCampaignsOpen, setIsCampaignsOpen] = useState(false);
-  const [active, setActive] = useState('/');
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const campaignItems = [
@@ -53,7 +53,7 @@ export default function Navbar() {
     { title: 'الرئيسية', href: '/' },
     { title: 'المنتجات', href: '/product' },
     { title: 'التسويق', href: '/marketing' },
-    { title: 'العقارات', href: '/#realstate' },
+    { title: 'العقارات', href: '/realstate' },
   ];
 
   const navLinkAfter = [
@@ -63,6 +63,14 @@ export default function Navbar() {
     { title: 'من نحن', href: '/#about' },
     { title: 'تواصل معنا', href: '/#contact' },
   ];
+
+  const isActive = (href: string) => {
+  // روابط الـ hash (/#realstate) مفيش طريقة نعرفها من pathname، فمش بتتفعّل
+  if (href.includes('#')) return false;
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(href + '/');
+  };
+  
   const {data:myData , status}= useSession();
   function mySignOut() {
     signOut({ redirect: true, callbackUrl: '/login' });
@@ -79,7 +87,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-3 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-4">
           {/* Right: Brand Logo */}
           <Link
-            onClick={() => setActive('/')}
+            onClick={() => isActive('/')}
             href="/"
             className="flex items-center gap-2 shrink-0"
           >
@@ -299,19 +307,18 @@ export default function Navbar() {
           <nav className="flex items-center text-xs lg:text-sm text-slate-300 py-2.5 border-b-2 border-b-navy-primary">
             <div className="flex items-center gap-6 lg:gap-8">
               {navLinkBefore.map((nav, index) => (
-                <Link
-                  key={index}
-                  href={nav.href}
-                  onClick={() => setActive(nav.href)}
-                  className={`relative py-1 transition-colors after:content-[''] after:absolute after:-bottom-2.5 after:left-0 after:right-0 after:h-[2.5px] after:bg-gold-light after:rounded-full ${
-                    active === nav.href
-                      ? 'font-extrabold text-gold-light after:opacity-100'
-                      : 'text-slate-300 hover:text-white after:opacity-0'
-                  }`}
-                >
-                  {nav.title}
-                </Link>
-              ))}
+                  <Link
+                    key={index}
+                    href={nav.href}
+                    className={`relative py-1 transition-colors after:content-[''] after:absolute after:-bottom-2.5 after:left-0 after:right-0 after:h-[2.5px] after:bg-gold-light after:rounded-full ${
+                      isActive(nav.href)
+                        ? 'font-extrabold text-gold-light after:opacity-100'
+                        : 'text-slate-300 hover:text-white after:opacity-0'
+                    }`}
+                  >
+                    {nav.title}
+                  </Link>
+                ))}
 
               {/* Promotional Campaigns with Dropdown */}
               <div className="relative">
@@ -342,7 +349,7 @@ export default function Navbar() {
                             key={index}
                             href={item.href}
                             onClick={() => {
-                              setActive(item.href);
+                              isActive(item.href);
                               setIsCampaignsOpen(false);
                             }}
                             className="flex items-center gap-3 px-4 py-2.5 text-xs lg:text-sm font-semibold text-navy-surface hover:bg-gold-soft-bg hover:text-gold-primary transition-colors"
@@ -363,9 +370,9 @@ export default function Navbar() {
                 <Link
                   key={index}
                   href={nav.href}
-                  onClick={() => setActive(nav.href)}
+                  onClick={() => isActive(nav.href)}
                   className={`relative py-1 transition-colors after:content-[''] after:absolute after:-bottom-2.5 after:left-0 after:right-0 after:h-[2.5px] after:bg-gold-light after:rounded-full ${
-                    active === nav.href
+                    isActive(nav.href)
                       ? 'font-extrabold text-gold-light after:opacity-100'
                       : 'text-slate-300 hover:text-white after:opacity-0'
                   }`}
@@ -417,11 +424,11 @@ export default function Navbar() {
                 key={index}
                 href={nav.href}
                 onClick={() => {
-                  setActive(nav.href);
+                  isActive(nav.href);
                   setMobileMenuOpen(false);
                 }}
                 className={`py-2.5 text-sm border-b border-slate-800/70 ${
-                  active === nav.href
+                  isActive(nav.href)
                     ? 'font-extrabold text-gold-light'
                     : 'text-slate-200'
                 }`}
@@ -441,11 +448,11 @@ export default function Navbar() {
                     key={index}
                     href={item.href}
                     onClick={() => {
-                      setActive(item.href);
+                      isActive(item.href);
                       setMobileMenuOpen(false);
                     }}
                     className={`py-1.5 text-xs ${
-                      active === item.href
+                      isActive(item.href)
                         ? 'font-extrabold text-gold-light'
                         : 'text-slate-300 hover:text-white'
                     }`}
@@ -461,11 +468,11 @@ export default function Navbar() {
                 key={index}
                 href={nav.href}
                 onClick={() => {
-                  setActive(nav.href);
+                  isActive(nav.href);
                   setMobileMenuOpen(false);
                 }}
                 className={`py-2.5 text-sm border-b border-slate-800/70 last:border-b-0 ${
-                  active === nav.href
+                  isActive(nav.href)
                     ? 'font-extrabold text-gold-light'
                     : 'text-slate-200'
                 }`}

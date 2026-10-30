@@ -52,147 +52,60 @@ export async function getProductByIdAdmin(
   }
 }
 
-export interface ProductPayload {
-  title: string; // متوافق مع الـ Schema و Product Interface
-  description: string;
-  price: string;
-  stock: string;
-  discountPrice?: string;
-  category?: string;
-  subCategory?: string;
-  detailsSubCategory?: string;
-  sizes?: string[];
-  colors?: string[];
-  images?: string[]; // Base64 strings
-}
+
 
 export async function createProduct(
-  payload: ProductPayload,
+  formData: FormData,
 ): Promise<{ success: boolean; data?: Product; message?: string }> {
   try {
     const token = await getAccessToken();
 
-    const formData = new FormData();
-    formData.append("title", payload.title);
-    formData.append("description", payload.description);
-    formData.append("price", payload.price);
-    formData.append("stock", payload.stock);
-    if (payload.discountPrice)
-      formData.append("discountPrice", payload.discountPrice);
-    if (payload.category) formData.append("category", payload.category);
-    if (payload.subCategory)
-      formData.append("subCategory", payload.subCategory);
-    if (payload.detailsSubCategory)
-      formData.append("detailsSubCategory", payload.detailsSubCategory);
-
-    payload.sizes?.forEach((s) => formData.append("sizes", s));
-    payload.colors?.forEach((c) => formData.append("colors", c));
-
-    if (payload.images?.length) {
-      for (let i = 0; i < payload.images.length; i++) {
-        const base64 = payload.images[i];
-        const mimeMatch = base64.match(/data:([^;]+);base64,/);
-        const mime = mimeMatch?.[1] ?? "image/jpeg";
-        const ext = mime.split("/")[1] ?? "jpg";
-        const byteStr = atob(base64.split(",")[1]);
-        const bytes = new Uint8Array(byteStr.length);
-        for (let j = 0; j < byteStr.length; j++)
-          bytes[j] = byteStr.charCodeAt(j);
-        const blob = new Blob([bytes], { type: mime });
-        formData.append("images", blob, `image_${i}.${ext}`);
-      }
-    }
-
     const res = await fetch(`${BASE}/products`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
-      body: formData,
+      body: formData, 
     });
 
-    const responseText = await res.text();
-    let parsed: any;
-    try {
-      parsed = JSON.parse(responseText);
-    } catch {
-      parsed = null;
-    }
+    const text = await res.text();
+    let parsed: any = null;
+    try { parsed = JSON.parse(text); } catch {}
 
     if (!res.ok) {
       return {
         success: false,
-        message: parsed?.message || "Failed to create product",
+        message: parsed?.message || `Failed (${res.status}): ${text.slice(0, 200)}`,
       };
     }
-
     return { success: true, data: parsed?.data, message: parsed?.message };
   } catch (err) {
-    return {
-      success: false,
-      message: (err as Error).message || "An unexpected error occurred",
-    };
+    return { success: false, message: (err as Error).message || "An unexpected error occurred" };
   }
 }
 
 /** PUT /api/products/:id — update existing product */
 export async function updateProduct(
   id: string,
-  payload: ProductPayload,
+  formData: FormData,
 ): Promise<{ success: boolean; data?: Product; message?: string }> {
   try {
     const token = await getAccessToken();
-
-    const formData = new FormData();
-    formData.append("title", payload.title);
-    formData.append("description", payload.description);
-    formData.append("price", payload.price);
-    formData.append("stock", payload.stock);
-    if (payload.discountPrice)
-      formData.append("discountPrice", payload.discountPrice);
-    if (payload.category) formData.append("category", payload.category);
-    if (payload.subCategory)
-      formData.append("subCategory", payload.subCategory);
-    if (payload.detailsSubCategory)
-      formData.append("detailsSubCategory", payload.detailsSubCategory);
-
-    payload.sizes?.forEach((s) => formData.append("sizes", s));
-    payload.colors?.forEach((c) => formData.append("colors", c));
-
-    if (payload.images?.length) {
-      for (let i = 0; i < payload.images.length; i++) {
-        const base64 = payload.images[i];
-        const mimeMatch = base64.match(/data:([^;]+);base64,/);
-        const mime = mimeMatch?.[1] ?? "image/jpeg";
-        const ext = mime.split("/")[1] ?? "jpg";
-        const byteStr = atob(base64.split(",")[1]);
-        const bytes = new Uint8Array(byteStr.length);
-        for (let j = 0; j < byteStr.length; j++)
-          bytes[j] = byteStr.charCodeAt(j);
-        const blob = new Blob([bytes], { type: mime });
-        formData.append("images", blob, `image_${i}.${ext}`);
-      }
-    }
-
     const res = await fetch(`${BASE}/products/${id}`, {
-      method: "PUT",
+      method: "PUT", // أو PATCH حسب الراوت عندك
       headers: { Authorization: `Bearer ${token}` },
       body: formData,
     });
-
-    const responseText = await res.text();
-    let parsed: any;
+    const text = await res.text();
+    let parsed: any = null;
     try {
-      parsed = JSON.parse(responseText);
-    } catch {
-      parsed = null;
-    }
-
+      parsed = JSON.parse(text);
+    } catch {}
     if (!res.ok) {
       return {
         success: false,
-        message: parsed?.message || "Failed to update product",
+        message:
+          parsed?.message || `Failed (${res.status}): ${text.slice(0, 200)}`,
       };
     }
-
     return { success: true, data: parsed?.data, message: parsed?.message };
   } catch (err) {
     return {
