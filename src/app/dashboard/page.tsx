@@ -101,7 +101,7 @@ export default function DashboardPage() {
         // أحدث 5 أوردرات
         setRecentOrders(
           [...orderList]
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
             .slice(0, 5),
         );
 

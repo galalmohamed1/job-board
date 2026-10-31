@@ -6,16 +6,21 @@ export interface AdminOrderItem {
     | {
         _id?: string;
         title?: string;
+        name?: string;
         image?:
           | { secure_url?: string; public_id?: string }[]
-          | { secure_url?: string; public_id?: string };
-        images?: ProductImage[] | string[];
+          | { secure_url?: string; public_id?: string }
+          | string;
+        images?:
+          | ProductImage[]
+          | { secure_url: string; public_id?: string }[]
+          | string[];
       }
     | string;
-  name?: string; // أو title لو الباك إند مسجل الاسم Snapshotted
+  name?: string;
   title?: string;
-  quantity?: number;
-  price?: number;
+  quantity: number;
+  price: number;
   size?: string;
   color?: string;
   image?: string;
@@ -43,6 +48,7 @@ export interface OrderShippingDetails {
   trackingNumber?: string;
   courierName?: string;
   courierPhone?: string;
+  shippedAt?: string;
 }
 
 export interface OrderNote {
@@ -61,6 +67,7 @@ export interface OrderNote {
 export interface AdminOrderShippingAddress {
   fullName?: string;
   phoneNumber?: string;
+  phone?: string;
   country?: string;
   governorate?: string;
   city?: string;
@@ -74,64 +81,56 @@ export interface AdminOrderShippingAddress {
 
 export interface AdminOrder {
   _id: string;
-  orderNumber: string;
+  orderNumber?: string;
   user?:
     | string
     | {
-        _id: string;
+        _id?: string;
         name?: string;
+        fullName?: string;
         email?: string;
         phoneNumber?: string;
+        phone?: string;
         role?: string;
       };
+  customer?:
+    | {
+        _id?: string;
+        name?: string;
+        fullName?: string;
+        email?: string;
+        phoneNumber?: string;
+        phone?: string;
+        role?: string;
+      }
+    | string;
+  contactEmail?: string;
   bookedBy?: { user: string; name: string; role: string };
-  items: {
-    product:
-      | string
-      | { _id: string; title?: string; images?: { secure_url: string }[] };
-    title: string;
-    image?: string;
-    price: number;
-    quantity: number;
-    size?: string;
-    color?: string;
-  }[];
-  shippingAddress: {
-    fullName: string;
-    phoneNumber: string;
-    country?: string;
-    governorate: string;
-    city: string;
-    street: string;
-    area?: string;
-    building?: string;
-    apartment?: string;
-    postalCode?: string;
-    notes?: string;
-  };
-  paymentMethod: "CashOnDelivery" | "CreditCard";
-  totalPrice: number;
-  shippingFee: number;
-  discountAmount: number;
-  finalPrice: number;
+  items: AdminOrderItem[];
+  shippingAddress?: AdminOrderShippingAddress;
+  paymentMethod?: "CashOnDelivery" | "CreditCard" | string;
+  totalPrice?: number;
+  shippingFee?: number;
+  discountAmount?: number;
+  finalPrice?: number;
+  couponCode?: string;
   orderStatus:
-    "Pending" | "Preparing" | "Shipped" | "Delivered" | "Refused" | "Cancelled";
-  statusHistory: {
-    status: string;
-    changedBy?: string | { _id: string; name: string; role: string };
-    changedAt: string;
-    note?: string;
-  }[];
-  shipping?: {
-    method: "Company" | "Courier";
-    companyName?: string;
-    courierName?: string;
-    courierPhone?: string;
-    trackingNumber?: string;
-    shippedAt?: string;
-  };
-  isPaid: boolean;
+    | "Pending"
+    | "Processing"
+    | "Preparing"
+    | "Shipped"
+    | "Delivered"
+    | "Refused"
+    | "Cancelled"
+    | string;
+  statusHistory?: StatusHistoryItem[];
+  shipping?: OrderShippingDetails;
+  shippingDetails?: OrderShippingDetails;
+  isPaid?: boolean;
   paidAt?: string;
-  createdAt: string;
-  updatedAt: string;
+  paidBy?: any;
+  isDeleted?: boolean;
+  notes?: (OrderNote | string)[];
+  createdAt?: string;
+  updatedAt?: string;
 }

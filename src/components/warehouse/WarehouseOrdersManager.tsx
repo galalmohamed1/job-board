@@ -1381,7 +1381,9 @@ export default function WarehouseOrdersManager({
                 <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 overflow-hidden bg-white">
                   {selectedOrder.items?.map((item, index) => {
                     const prodObj = typeof item.product === 'object' && item.product !== null ? item.product : null;
-                    const imgUrl = item.image || prodObj?.images?.[0]?.secure_url || '/placeholder.png';
+                    const firstImg = prodObj?.images?.[0];
+                    const firstImgUrl = typeof firstImg === 'string' ? firstImg : firstImg?.secure_url;
+                    const imgUrl = item.image || firstImgUrl || '/placeholder.png';
                     const title = item.title || 'منتج';
                     const itemKey = (prodObj?._id) || (typeof item.product === 'string' ? item.product : null) || index;
                     return (
