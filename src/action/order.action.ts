@@ -172,99 +172,24 @@ export async function updateOrderStatus(
 }
 
 // PATCH /orders/:id/paid (أدوار: محاسب / مدير مبيعات / أدمن)
+// PATCH /api/orders/:id/payment  (محاسب / مدير مبيعات / أدمن)
 export async function markOrderPaid(
-  orderId: string
+  orderId: string,
 ): Promise<ActionResult<AdminOrder>> {
-  try {
-    const token = await getAccessToken();
-    if (!token) {
-      return { success: false, message: "يرجى تسجيل الدخول أولاً" };
-    }
+  if (!orderId) {
+    return { success: false, message: "معرف الطلب غير صالح" };
+  }
 
-    if (!orderId) {
-      return { success: false, message: "معرف الطلب غير صالح" };
-    }
+  const result = await request<AdminOrder>(`/orders/${orderId}/payment`, {
+    method: "PATCH",
+  });
 
-    const cleanBase = (
-      process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-six.vercel.app/api"
-    ).replace(/\/+$/, "");
-
-    // 1. Primary endpoint: PATCH /orders/:id/paid
-    let res = await fetch(`${cleanBase}/orders/${orderId}/paid`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      cache: "no-store",
-    });
-
-    let data = await res.json().catch(() => null);
-
-    // If 404 on /paid, try fallback to /orders/:id/payment just in case
-    if (res.status === 404 && (!data || !data.success)) {
-      const fallbackRes = await fetch(`${cleanBase}/orders/${orderId}/payment`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        cache: "no-store",
-      });
-      const fallbackData = await fallbackRes.json().catch(() => null);
-      if (fallbackRes.ok && fallbackData?.success !== false) {
-        res = fallbackRes;
-        data = fallbackData;
-      }
-    }
-
-    if (!res.ok || data?.success === false) {
-      let defaultErrMsg = "فشل في تأكيد دفع الطلب";
-      if (res.status === 400) {
-        defaultErrMsg =
-          data?.message ||
-          "الطلب غير صالح أو تم دفعه بالفعل أو حالته ملغية أو مرفوضة";
-      } else if (res.status === 404) {
-        defaultErrMsg = data?.message || "الطلب غير موجود";
-      } else if (res.status === 409) {
-        defaultErrMsg =
-          data?.message ||
-          "تم تحديث الطلب في نفس اللحظة، يرجى إعادة المحاولة";
-      }
-
-      return {
-        success: false,
-        message: data?.message || defaultErrMsg,
-      };
-    }
-
-    // Revalidate orders pages
+  if (result.success) {
     revalidatePath("/dashboard-account/orders");
     revalidatePath("/dashboard-account/accounts");
-    revalidatePath("/dashboard/orders");
-
-    return {
-      success: true,
-      message: data?.message || "تم تأكيد دفع الطلب بنجاح",
-      data: (data?.data ?? data?.order ?? data) as AdminOrder,
-    };
-  } catch (err: unknown) {
-    console.error("markOrderPaid error:", err);
-    const errorObj = err as {
-      cause?: { code?: string };
-      code?: string;
-      message?: string;
-    };
-    const errorCode = errorObj?.cause?.code || errorObj?.code;
-    const msg =
-      errorCode === "ECONNREFUSED"
-        ? "تعذر الاتصال بالخادم، يرجى التأكد من تشغيل السيرفر"
-        : errorObj?.message || "حدث خطأ غير متوقع أثناء تأكيد الدفع";
-    return {
-      success: false,
-      message: msg,
-    };
+    revalidatePath("/dashboard/order");
   }
+  return result;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -282,11 +207,13 @@ export interface SalesOrdersResponse {
  * جلب أوردرات مسؤول المبيعات الحالي (الباك إند يفلتر بـ req.user)
  * GET /orders?status=&page=&limit=
  */
-export async function getSalesOrders(params: {
-  status?: string;
-  page?: number;
-  limit?: number;
-} = {}): Promise<ActionResult<SalesOrdersResponse>> {
+export async function getSalesOrders(
+  params: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<ActionResult<SalesOrdersResponse>> {
   try {
     const token = await getAccessToken();
     if (!token) {
@@ -329,12 +256,15 @@ export async function getSalesOrders(params: {
     let currPage = page;
     let totalPages = 1;
 
-    if (data?.data && typeof data.data === "object" && !Array.isArray(data.data)) {
+    if (
+      data?.data &&
+      typeof data.data === "object" &&
+      !Array.isArray(data.data)
+    ) {
       orders = Array.isArray(data.data.orders) ? data.data.orders : [];
       total = data.data.total ?? orders.length;
       currPage = data.data.page ?? page;
-      totalPages =
-        data.data.pages ?? Math.max(1, Math.ceil(total / limit));
+      totalPages = data.data.pages ?? Math.max(1, Math.ceil(total / limit));
     } else if (Array.isArray(data?.data)) {
       orders = data.data;
       total = data.total ?? data.count ?? orders.length;
@@ -380,7 +310,7 @@ export async function getSalesOrders(params: {
  * GET /orders/:id
  */
 export async function getSalesOrderById(
-  orderId: string
+  orderId: string,
 ): Promise<ActionResult<AdminOrder>> {
   try {
     const token = await getAccessToken();
@@ -438,7 +368,7 @@ export async function getSalesOrderById(
  */
 export async function cancelOrder(
   orderId: string,
-  note?: string
+  note?: string,
 ): Promise<ActionResult<AdminOrder>> {
   try {
     const token = await getAccessToken();
@@ -511,7 +441,7 @@ export async function cancelOrder(
  */
 export async function addOrderNote(
   orderId: string,
-  text: string
+  text: string,
 ): Promise<ActionResult> {
   try {
     const token = await getAccessToken();
@@ -574,4 +504,3 @@ export async function addOrderNote(
     };
   }
 }
-

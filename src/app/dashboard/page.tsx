@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Package,
@@ -8,54 +8,16 @@ import {
   Layers,
   ListTree,
   UserPlus,
-  TrendingUp,
   ShoppingCart,
   Users,
   DollarSign,
-  ArrowUpRight,
-  ArrowDownRight,
   BarChart3,
   Eye,
 } from 'lucide-react';
-
-const stats = [
-  {
-    label: 'إجمالي المنتجات',
-    value: '248',
-    change: '+12',
-    changeType: 'up',
-    icon: Package,
-    color: 'bg-blue-50 text-blue-600',
-    borderColor: 'border-blue-200',
-  },
-  {
-    label: 'إجمالي الطلبات',
-    value: '1,432',
-    change: '+28',
-    changeType: 'up',
-    icon: ShoppingCart,
-    color: 'bg-emerald-50 text-emerald-600',
-    borderColor: 'border-emerald-200',
-  },
-  {
-    label: 'العملاء المسجلين',
-    value: '892',
-    change: '+7',
-    changeType: 'up',
-    icon: Users,
-    color: 'bg-purple-50 text-purple-600',
-    borderColor: 'border-purple-200',
-  },
-  {
-    label: 'الإيرادات (EGP)',
-    value: '345,200',
-    change: '-2.4%',
-    changeType: 'down',
-    icon: DollarSign,
-    color: 'bg-amber-50 text-amber-600',
-    borderColor: 'border-amber-200',
-  },
-];
+import { getAllOrdersAdmin, getAllUsersAdmin } from '@/action/admin.action';
+// import { getAllProducts } from '@/action/product.action'; // عدّل المسار حسب مكان الدالة عندك
+import { AdminOrder } from '@/types/admin/adminOrders';
+import { getAllProducts } from '@/app/api/services/product.services';
 
 const quickLinks = [
   {
@@ -102,15 +64,115 @@ const quickLinks = [
   },
 ];
 
-const recentOrders = [
-  { id: '#ORD-1201', customer: 'أحمد محمد', amount: '2,450 EGP', status: 'مكتمل', statusColor: 'bg-emerald-100 text-emerald-700' },
-  { id: '#ORD-1200', customer: 'فاطمة علي', amount: '850 EGP', status: 'قيد التنفيذ', statusColor: 'bg-blue-100 text-blue-700' },
-  { id: '#ORD-1199', customer: 'خالد إبراهيم', amount: '3,100 EGP', status: 'معلق', statusColor: 'bg-amber-100 text-amber-700' },
-  { id: '#ORD-1198', customer: 'سارة حسن', amount: '720 EGP', status: 'مكتمل', statusColor: 'bg-emerald-100 text-emerald-700' },
-  { id: '#ORD-1197', customer: 'محمود يوسف', amount: '1,900 EGP', status: 'ملغي', statusColor: 'bg-red-100 text-red-700' },
-];
+// ألوان وأسماء الحالات (مطابقة لحالات الباك)
+const STATUS_UI: Record<string, { label: string; color: string }> = {
+  Pending: { label: 'معلق', color: 'bg-amber-100 text-amber-700' },
+  Preparing: { label: 'قيد التجهيز', color: 'bg-indigo-100 text-indigo-700' },
+  Shipped: { label: 'تم الشحن', color: 'bg-blue-100 text-blue-700' },
+  Delivered: { label: 'مكتمل', color: 'bg-emerald-100 text-emerald-700' },
+  Cancelled: { label: 'ملغي', color: 'bg-red-100 text-red-700' },
+  Refused: { label: 'مرفوض', color: 'bg-red-100 text-red-700' },
+};
 
 export default function DashboardPage() {
+  const [recentOrders, setRecentOrders] = useState<AdminOrder[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [productsCount, setProductsCount] = useState<number | null>(null);
+  const [ordersCount, setOrdersCount] = useState<number | null>(null);
+  const [customersCount, setCustomersCount] = useState<number | null>(null);
+  const [revenue, setRevenue] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+
+    const load = async () => {
+      try {
+        const [orders, products, users] = await Promise.all([
+          getAllOrdersAdmin(),
+          getAllProducts(),
+          getAllUsersAdmin(),
+        ]);
+        if (!alive) return;
+
+        const orderList = Array.isArray(orders) ? orders : [];
+        const productList = Array.isArray(products) ? products : [];
+        const userList = Array.isArray(users) ? users : [];
+
+        // أحدث 5 أوردرات
+        setRecentOrders(
+          [...orderList]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5),
+        );
+
+        setProductsCount(productList.length);
+        setOrdersCount(orderList.length);
+
+        // العملاء فقط (من غير الموظفين)
+        setCustomersCount(
+          userList.filter((u) => {
+            const role = (u as { role?: string }).role;
+            return !role || role === 'user';
+          }).length,
+        );
+
+        // الإيرادات: مجموع الأوردرات اللي اتأكد دفعها فقط
+        setRevenue(
+          orderList
+            .filter(
+              (o) =>
+                o.isPaid &&
+                o.orderStatus !== 'Cancelled' &&
+                o.orderStatus !== 'Refused',
+            )
+            .reduce((sum, o) => sum + (o.totalPrice || 0), 0),
+        );
+      } catch {
+        // لو حصل خطأ بتفضل القيم "—"
+      } finally {
+        if (alive) setOrdersLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const fmt = (n: number | null) => (n === null ? '—' : n.toLocaleString('en-US'));
+
+  const stats = [
+    {
+      label: 'إجمالي المنتجات',
+      value: fmt(productsCount),
+      icon: Package,
+      color: 'bg-blue-50 text-blue-600',
+      borderColor: 'border-blue-200',
+    },
+    {
+      label: 'إجمالي الطلبات',
+      value: fmt(ordersCount),
+      icon: ShoppingCart,
+      color: 'bg-emerald-50 text-emerald-600',
+      borderColor: 'border-emerald-200',
+    },
+    {
+      label: 'العملاء المسجلين',
+      value: fmt(customersCount),
+      icon: Users,
+      color: 'bg-purple-50 text-purple-600',
+      borderColor: 'border-purple-200',
+    },
+    {
+      label: 'الإيرادات (EGP)',
+      value: fmt(revenue),
+      icon: DollarSign,
+      color: 'bg-amber-50 text-amber-600',
+      borderColor: 'border-amber-200',
+    },
+  ];
+
   return (
     <div className="space-y-6 text-right" dir="rtl">
       {/* Welcome */}
@@ -141,14 +203,6 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between mb-3">
                 <div className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}>
                   <Icon className="w-5 h-5" />
-                </div>
-                <div className={`flex items-center gap-0.5 text-xs font-bold ${stat.changeType === 'up' ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {stat.changeType === 'up' ? (
-                    <ArrowUpRight className="w-3.5 h-3.5" />
-                  ) : (
-                    <ArrowDownRight className="w-3.5 h-3.5" />
-                  )}
-                  {stat.change}
                 </div>
               </div>
               <p className="text-2xl font-black text-slate-800 leading-none mb-1">
@@ -188,7 +242,7 @@ export default function DashboardPage() {
       {/* Recent Orders */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <Link href="/dashboard" className="text-xs font-bold text-[#D49B35] hover:underline flex items-center gap-1">
+          <Link href="/dashboard/order" className="text-xs font-bold text-[#D49B35] hover:underline flex items-center gap-1">
             <Eye className="w-3.5 h-3.5" />
             عرض الكل
           </Link>
@@ -206,18 +260,47 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {recentOrders.map((order, idx) => (
-                  <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-slate-500">{order.id}</td>
-                    <td className="px-4 py-3 font-bold text-slate-700 text-xs">{order.customer}</td>
-                    <td className="px-4 py-3 font-bold text-[#0B2545] text-xs">{order.amount}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${order.statusColor}`}>
-                        {order.status}
-                      </span>
+                {ordersLoading ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-400">
+                      جاري التحميل...
                     </td>
                   </tr>
-                ))}
+                ) : recentOrders.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-400">
+                      لا توجد طلبات حتى الآن
+                    </td>
+                  </tr>
+                ) : (
+                  recentOrders.map((order) => {
+                    const ui = STATUS_UI[order.orderStatus] ?? {
+                      label: order.orderStatus,
+                      color: 'bg-slate-100 text-slate-700',
+                    };
+                    const customerName =
+                      order.shippingAddress?.fullName ||
+                      (order.user && typeof order.user === 'object' ? order.user.name : '') ||
+                      'عميل غير مسجل';
+
+                    return (
+                      <tr key={order._id} className="border-b border-slate-50 hover:bg-slate-50/70 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                          #{order.orderNumber || order._id.slice(-6).toUpperCase()}
+                        </td>
+                        <td className="px-4 py-3 font-bold text-slate-700 text-xs">{customerName}</td>
+                        <td className="px-4 py-3 font-bold text-[#0B2545] text-xs">
+                          {(order.finalPrice || order.totalPrice || 0).toLocaleString('ar-EG')} EGP
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${ui.color}`}>
+                            {ui.label}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

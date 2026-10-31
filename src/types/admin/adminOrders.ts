@@ -74,48 +74,64 @@ export interface AdminOrderShippingAddress {
 
 export interface AdminOrder {
   _id: string;
-  orderNumber?: string;
+  orderNumber: string;
   user?:
-    | {
-        _id: string;
-        name?: string;
-        fullName?: string;
-        email: string;
-        role?: string;
-        phoneNumber?: string;
-        phone?: string;
-      }
-    | string;
-  customer?: {
-    _id?: string;
-    name?: string;
-    fullName?: string;
-    email?: string;
-    role?: string;
-  };
-  contactEmail?: string;
-  orderStatus: "Pending" | "Processing" | "Preparing" | "Shipped" | "Delivered" | "Refused" | "Cancelled";
-  paymentMethod?: string;
-  isPaid?: boolean;
-  paidAt?: string;
-  paidBy?:
     | string
     | {
         _id: string;
         name?: string;
-        fullName?: string;
         email?: string;
+        phoneNumber?: string;
+        role?: string;
       };
-  isDeleted?: boolean;
+  bookedBy?: { user: string; name: string; role: string };
+  items: {
+    product:
+      | string
+      | { _id: string; title?: string; images?: { secure_url: string }[] };
+    title: string;
+    image?: string;
+    price: number;
+    quantity: number;
+    size?: string;
+    color?: string;
+  }[];
+  shippingAddress: {
+    fullName: string;
+    phoneNumber: string;
+    country?: string;
+    governorate: string;
+    city: string;
+    street: string;
+    area?: string;
+    building?: string;
+    apartment?: string;
+    postalCode?: string;
+    notes?: string;
+  };
+  paymentMethod: "CashOnDelivery" | "CreditCard";
   totalPrice: number;
-  discountAmount?: number;
+  shippingFee: number;
+  discountAmount: number;
   finalPrice: number;
-  couponCode?: string;
+  orderStatus:
+    "Pending" | "Preparing" | "Shipped" | "Delivered" | "Refused" | "Cancelled";
+  statusHistory: {
+    status: string;
+    changedBy?: string | { _id: string; name: string; role: string };
+    changedAt: string;
+    note?: string;
+  }[];
+  shipping?: {
+    method: "Company" | "Courier";
+    companyName?: string;
+    courierName?: string;
+    courierPhone?: string;
+    trackingNumber?: string;
+    shippedAt?: string;
+  };
+  isPaid: boolean;
+  paidAt?: string;
   createdAt: string;
-  updatedAt?: string;
-  items?: AdminOrderItem[];
-  shippingAddress?: AdminOrderShippingAddress;
-  shipping?: OrderShippingDetails;
-  statusHistory?: StatusHistoryItem[];
-  notes?: OrderNote[];
+  updatedAt: string;
 }

@@ -14,8 +14,8 @@ import {
 import { getAccessToken } from "@/utilities/utilite";
 
 const BASE =
-  process.env.NEXT_PUBLIC_BASE_URL || "https://horus-nine.vercel.app/api";
-export type StaffRole = "accountant" | "warehouse" | "sales" | "salesManager";
+  process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-omega.vercel.app/api";
+export type StaffRole = "accountant" | "warehouse" | "sales" | "salesManager" | "courier";
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCTS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -52,8 +52,6 @@ export async function getProductByIdAdmin(
   }
 }
 
-
-
 export async function createProduct(
   formData: FormData,
 ): Promise<{ success: boolean; data?: Product; message?: string }> {
@@ -63,22 +61,28 @@ export async function createProduct(
     const res = await fetch(`${BASE}/products`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
-      body: formData, 
+      body: formData,
     });
 
     const text = await res.text();
     let parsed: any = null;
-    try { parsed = JSON.parse(text); } catch {}
+    try {
+      parsed = JSON.parse(text);
+    } catch {}
 
     if (!res.ok) {
       return {
         success: false,
-        message: parsed?.message || `Failed (${res.status}): ${text.slice(0, 200)}`,
+        message:
+          parsed?.message || `Failed (${res.status}): ${text.slice(0, 200)}`,
       };
     }
     return { success: true, data: parsed?.data, message: parsed?.message };
   } catch (err) {
-    return { success: false, message: (err as Error).message || "An unexpected error occurred" };
+    return {
+      success: false,
+      message: (err as Error).message || "An unexpected error occurred",
+    };
   }
 }
 
@@ -456,12 +460,14 @@ export async function deleteDetailsSubCategory(
 export async function getAllOrdersAdmin(): Promise<AdminOrder[] | undefined> {
   try {
     const token = await getAccessToken();
-    const res = await fetch(`${BASE}/orders`, {
+    const res = await fetch(`${BASE}/orders?page=1&limit=100`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
-    const data: ApiListResponse<AdminOrder> = await res.json();
-    return data.data;
+    const json = await res.json();
+    if (!res.ok || json?.success === false) return undefined;
+
+    return Array.isArray(json.data) ? json.data : (json.data?.orders ?? []);
   } catch {
     return undefined;
   }
@@ -469,20 +475,31 @@ export async function getAllOrdersAdmin(): Promise<AdminOrder[] | undefined> {
 
 export async function updateOrderStatus(
   orderId: string,
-  orderStatus: AdminOrder["orderStatus"],
+  status: AdminOrder["orderStatus"],
+  extra: {
+    shipping?: {
+      method: "Company" | "Courier";
+      companyName?: string;
+      courierName?: string;
+      courierPhone?: string;
+      trackingNumber?: string;
+    };
+    note?: string;
+  } = {},
 ): Promise<{ success: boolean; message?: string }> {
   try {
     const token = await getAccessToken();
     const res = await fetch(`${BASE}/orders/${orderId}/status`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ orderStatus }),
+      body: JSON.stringify({ status, ...extra }),
+      cache: "no-store",
     });
     const data = await res.json().catch(() => null);
-    if (!res.ok) {
+    if (!res.ok || data?.success === false) {
       return {
         success: false,
         message: data?.message || "Failed to update order status",
@@ -597,7 +614,7 @@ export async function createStaffAccount(body: {
     const endpoint = `${cleanBase}/api/auth/${role}`;
     console.log("🚀 Creating staff account at:", endpoint);
 
-    const res = await fetch(endpoint, {
+    let res = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -605,10 +622,31 @@ export async function createStaffAccount(body: {
       },
       body: JSON.stringify({
         ...rest,
+        role,
         phoneNumber: phone || undefined,
         phone: phone || undefined,
       }),
     });
+
+    if (res.status === 404 && role.toLowerCase() === "courier") {
+      const altEndpoint = `${cleanBase}/api/auth/Courier`;
+      const altRes = await fetch(altEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          ...rest,
+          role: "Courier",
+          phoneNumber: phone || undefined,
+          phone: phone || undefined,
+        }),
+      });
+      if (altRes.ok || altRes.status !== 404) {
+        res = altRes;
+      }
+    }
 
     const data = await res.json().catch(() => null);
     console.log("📥 Response status:", res.status, "data:", data);
@@ -638,7 +676,7 @@ export async function createStaffAccount(body: {
 export async function getAllUsersAdmin(): Promise<AdminCustomer[] | undefined> {
   try {
     const token = await getAccessToken();
-    
+
     const res = await fetch(`${BASE}/users`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",

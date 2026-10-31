@@ -20,6 +20,7 @@ import {
   Settings,
   ChevronLeft,
   Ticket,
+  ShoppingBag,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
@@ -34,6 +35,11 @@ const navItems = [
     label: 'المنتجات',
     href: '/dashboard/products',
     icon: Package,
+  },
+  {
+    label: 'الطلبات',
+    href: '/dashboard/order',
+    icon: ShoppingBag,
   },
   {
     label: 'كوبونات الخصم',

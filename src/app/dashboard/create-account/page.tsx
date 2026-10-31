@@ -19,10 +19,11 @@ import {
   Warehouse,
   TrendingUp,
   BadgeCheck,
+  Bike,
 } from 'lucide-react';
 import { createStaffAccount } from '@/action/admin.action';
 
-type AccountRole = 'accountant' | 'warehouse' | 'sales' | 'salesManager';
+type AccountRole = 'accountant' | 'warehouse' | 'sales' | 'salesManager' | 'courier';
 type Toast = { type: 'success' | 'error'; message: string } | null;
 
 interface RoleOption {
@@ -71,6 +72,15 @@ const roleOptions: RoleOption[] = [
     color: 'text-amber-600',
     bgColor: 'bg-amber-50',
     borderColor: 'border-amber-200',
+  },
+  {
+    value: 'courier',
+    label: 'مندوب توصيل (Courier)',
+    description: 'استلام وتوصيل الشحنات والطلبات للعملاء وتحديث حالة التسليم',
+    icon: Bike,
+    color: 'text-cyan-600',
+    bgColor: 'bg-cyan-50',
+    borderColor: 'border-cyan-200',
   },
 ];
 
@@ -157,7 +167,7 @@ export default function CreateAccountPage() {
       {/* Role Selection */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5">
         <h2 className="text-sm font-black text-slate-700 mb-4">اختر نوع الحساب</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           {roleOptions.map((role) => {
             const Icon = role.icon;
             const isSelected = selectedRole === role.value;
