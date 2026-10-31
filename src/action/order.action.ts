@@ -12,7 +12,7 @@ import { AdminOrder } from "@/types/admin/adminOrders";
 import { getAccessToken } from "@/utilities/utilite";
 import { revalidatePath } from "next/cache";
 
-const BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-six.vercel.app/api"}`;
+const BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-omega.vercel.app/api"}`;
 
 // helper داخلي: بيجيب الـ token ويبعت الطلب ويرجّع نتيجة موحدة
 async function request<T = unknown>(
@@ -165,10 +165,122 @@ export async function updateOrderStatus(
   status: OrderStatus,
   extra: { shipping?: ShippingInfo; note?: string } = {},
 ) {
-  return request(`/orders/${id}/status`, {
+  const res = await request(`/orders/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status, ...extra }),
   });
+  if (res.success) {
+    revalidatePath("/dashboard-warehouse");
+    revalidatePath("/dashboard-warehouse");
+    revalidatePath("/dashboard-sales");
+    revalidatePath("/dashboard-account/orders");
+    revalidatePath("/dashboard/order");
+  }
+  return res;
+}
+
+export interface WarehouseOrdersResponse {
+  orders: AdminOrder[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+/**
+ * جلب جميع الطلبات لأمين المستودع مع الفلترة
+ * GET /orders?status=&page=&limit=
+ */
+export async function getWarehouseOrders(
+  params: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<ActionResult<WarehouseOrdersResponse>> {
+  try {
+    const token = await getAccessToken();
+    if (!token) {
+      return { success: false, message: "يرجى تسجيل الدخول أولاً" };
+    }
+
+    const query = new URLSearchParams();
+    if (params.status && params.status !== "all" && params.status !== "ALL") {
+      query.append("status", params.status);
+    }
+    const page = params.page ?? 1;
+    const limit = params.limit ?? 50;
+    query.append("page", String(page));
+    query.append("limit", String(limit));
+
+    const cleanBase = (
+      process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-omega.vercel.app/api"
+    ).replace(/\/+$/, "");
+
+    const res = await fetch(`${cleanBase}/orders?${query.toString()}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      cache: "no-store",
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || data?.success === false) {
+      return {
+        success: false,
+        message: data?.message || "فشل في جلب طلبات المستودع",
+      };
+    }
+
+    let orders: AdminOrder[] = [];
+    let total = 0;
+    let currPage = page;
+    let totalPages = 1;
+
+    if (
+      data?.data &&
+      typeof data.data === "object" &&
+      !Array.isArray(data.data)
+    ) {
+      orders = Array.isArray(data.data.orders) ? data.data.orders : [];
+      total = data.data.total ?? orders.length;
+      currPage = data.data.page ?? page;
+      totalPages = data.data.pages ?? Math.max(1, Math.ceil(total / limit));
+    } else if (Array.isArray(data?.data)) {
+      orders = data.data;
+      total = data.total ?? data.count ?? orders.length;
+      currPage = data.page ?? page;
+      totalPages = data.pages ?? Math.max(1, Math.ceil(total / limit));
+    } else if (Array.isArray(data?.orders)) {
+      orders = data.orders;
+      total = data.total ?? orders.length;
+      currPage = data.page ?? page;
+      totalPages = data.pages ?? 1;
+    } else if (Array.isArray(data)) {
+      orders = data;
+      total = data.length;
+      currPage = 1;
+      totalPages = 1;
+    }
+
+    return {
+      success: true,
+      data: {
+        orders,
+        total,
+        page: currPage,
+        pages: totalPages,
+      },
+      message: data?.message,
+    };
+  } catch (err: unknown) {
+    console.error("getWarehouseOrders error:", err);
+    return {
+      success: false,
+      message: (err as Error).message || "حدث خطأ غير متوقع أثناء جلب الطلبات",
+    };
+  }
 }
 
 // PATCH /orders/:id/paid (أدوار: محاسب / مدير مبيعات / أدمن)
@@ -230,7 +342,7 @@ export async function getSalesOrders(
     query.append("limit", String(limit));
 
     const cleanBase = (
-      process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-six.vercel.app/api"
+      process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-omega.vercel.app/api"
     ).replace(/\/+$/, "");
 
     const res = await fetch(`${cleanBase}/orders?${query.toString()}`, {
@@ -319,7 +431,7 @@ export async function getSalesOrderById(
     }
 
     const cleanBase = (
-      process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-six.vercel.app/api"
+      process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-omega.vercel.app/api"
     ).replace(/\/+$/, "");
 
     const res = await fetch(`${cleanBase}/orders/${orderId}`, {
@@ -381,7 +493,7 @@ export async function cancelOrder(
     }
 
     const cleanBase = (
-      process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-six.vercel.app/api"
+      process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-omega.vercel.app/api"
     ).replace(/\/+$/, "");
 
     const res = await fetch(`${cleanBase}/orders/${orderId}/status`, {
@@ -458,7 +570,7 @@ export async function addOrderNote(
     }
 
     const cleanBase = (
-      process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-six.vercel.app/api"
+      process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-omega.vercel.app/api"
     ).replace(/\/+$/, "");
 
     const res = await fetch(`${cleanBase}/orders/${orderId}/notes`, {
@@ -480,6 +592,7 @@ export async function addOrderNote(
       };
     }
 
+    revalidatePath("/dashboard-warehouse");
     revalidatePath("/dashboard-sales");
 
     return {

@@ -71,6 +71,7 @@ export default function CategoryCard({ id, name, description, image }: Props) {
     <div
       data-id={id}
       className="relative overflow-visible flex flex-col bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-300 text-center font-['Cairo']"
+      dir='rtl'
     >
       {/* Image */}
       <div className="relative h-44 w-full">

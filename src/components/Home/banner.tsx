@@ -11,6 +11,7 @@ import {
   type CarouselApi,
 } from '@/components/ui/carousel';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 
 const slides = [
   {
@@ -19,20 +20,23 @@ const slides = [
     kicker: 'كل ما تحتاجه في مكان واحد',
     title: 'سوق حورس',
     subtitle: 'منصة تجمع بين التجارة والتسويق والخدمات المهنية',
+    href:"/product"
   },
   {
     image: '/img/bannerimg.png',
-    alt: 'خدمات تسويقية',
-    kicker: 'حلول تسويقية متكاملة',
-    title: 'حملات تصنع الفرق',
-    subtitle: 'حملات انتخابية وإعلانية وتسويقية بأعلى جودة',
-  },
-  {
-    image: '/img/bannerimg.png',
-    alt: 'استشارات مهنية',
+    alt: 'العقارات ',
     kicker: 'خبرة تثق فيها',
-    title: 'خدمات مهنية',
-    subtitle: 'استشارات موثوقة من فريق متخصص',
+    title: 'عقارك متكاملة',
+    subtitle: 'عقارك مع حورس',
+    href:"/realstate"
+  },
+  {
+    image: '/img/bannerimg.png',
+    alt: 'التسويق والإعلان ',
+    kicker: 'خبرة تثق فيها',
+    title: 'التسويق والإعلان',
+    subtitle: 'حملاتك الإعلانية وتسويق منتجاتك وخدماتك وإدارة حساباتك',
+    href:"/marketing"
   },
 ];
 
@@ -118,18 +122,18 @@ export default function Banner() {
                             </span>
                             <span>{f.text}</span>
                           </div>
+                          
                         );
                       })}
                     </div>
-
                     <div>
-                      <a
-                        href="/categories"
+                      <Link
+                        href={slide.href}
                         className="inline-flex items-center gap-2.5 px-7 py-3 rounded-lg font-bold text-slate-900 text-sm sm:text-base bg-[#D49B35] hover:bg-[#F3C053] transition-all duration-300 shadow-lg hover:shadow-[#D49B35]/30 hover:scale-[1.02] active:scale-95 cursor-pointer font-['Cairo']"
                       >
                         <ArrowLeft className="w-4 h-4 text-slate-900 stroke-[2.5]" />
                         <span>اكتشف المنصة</span>
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>
