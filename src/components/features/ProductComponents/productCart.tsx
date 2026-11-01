@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useShop } from "@/context/ShopContext";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 interface ProductCardProps {
   product: Product;
@@ -46,7 +47,14 @@ export default function ProductCard({ product }: ProductCardProps) {
   const imgSrc = (url?: string) => !url ? '' : url.startsWith('http') || url.startsWith('data:') ? url : `${API_ORIGIN}${url}`;
   const isNew = !hasDiscount && !product.isFeatured && (product.stock ?? 0) > 20;
 
+  const { status } = useSession();
   const handleAddToCart = async () => {
+  if (status === 'unauthenticated') {
+    toast.info('يرجى تسجيل الدخول أولاً');
+    router.push('/login');
+    return;
+  }
+
   const needsOptions = (product.colors?.length ?? 0) > 0 || (product.sizes?.length ?? 0) > 0;
 
   if (needsOptions) {

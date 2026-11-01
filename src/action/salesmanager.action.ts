@@ -3,7 +3,7 @@
 import { ActionResult, OrderStatus } from "@/types/order";
 import { AdminOrder } from "@/types/admin/adminOrders";
 import { getAccessToken } from "@/utilities/utilite";
-import { markOrderPaid, updateOrderStatus, addOrderNote } from "./order.action";
+import { addOrderNote } from "./order.action";
 import { revalidatePath } from "next/cache";
 
 const BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL || "https://horus-nine.vercel.app/api"}`;
@@ -150,85 +150,44 @@ export type SalesManagerState =
  */
 export async function updateSalesManagerOrderState(
   orderId: string,
-  state: SalesManagerState
-): Promise<{ success: boolean; message?: string; data?: AdminOrder }> {
+  state: SalesManagerState,
+  extra: {
+    shipping?: {
+      method: "Company" | "Courier";
+      companyName?: string;
+      courierName?: string;
+      courierPhone?: string;
+      trackingNumber?: string;
+    };
+    note?: string;
+  } = {},
+): Promise<{ success: boolean; message?: string }> {
   try {
     const token = await getAccessToken();
-    if (!token) {
-      return { success: false, message: "يرجى تسجيل الدخول أولاً" };
-    }
 
-    if (!orderId) {
-      return { success: false, message: "معرف الطلب غير صالح" };
-    }
+    // تأكيد الدفع له endpoint منفصل
+    const isPaid = state === "isPaid";
+    const url = isPaid
+      ? `${BASE_URL}/orders/${orderId}/payment`
+      : `${BASE_URL}/orders/${orderId}/status`;
 
-    // 1. If state is "isPaid", mark order as paid
-    if (state === "isPaid") {
-      const paidRes = await markOrderPaid(orderId);
-      if (paidRes.success) {
-        revalidatePath("/dashboard-salesmanger");
-        return {
-          success: true,
-          message: paidRes.message || "تم تأكيد دفع الطلب بنجاح",
-          data: paidRes.data,
-        };
-      }
-      return {
-        success: false,
-        message: paidRes.message || "فشل تأكيد دفع الطلب",
-      };
-    }
-
-    // 2. Otherwise update orderStatus via PATCH /orders/:id/status
-    const cleanBase = BASE_URL.replace(/\/+$/, "");
-    let res = await fetch(`${cleanBase}/orders/${orderId}/status`, {
+    const res = await fetch(url, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ status: state }),
+      body: isPaid ? undefined : JSON.stringify({ status: state, ...extra }),
+      cache: "no-store",
     });
 
-    let data = await res.json().catch(() => null);
-
-    // Fallback if needed: try PUT /orders/:id/status
-    if (!res.ok && !data?.success) {
-      const resPut = await fetch(`${cleanBase}/orders/${orderId}/status`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ orderStatus: state, status: state }),
-      });
-      const dataPut = await resPut.json().catch(() => null);
-      if (resPut.ok && dataPut?.success !== false) {
-        res = resPut;
-        data = dataPut;
-      }
+    const data = await res.json().catch(() => null);
+    if (!res.ok || data?.success === false) {
+      return { success: false, message: data?.message || "Failed to update order" };
     }
-
-    if (!res.ok && !data?.success) {
-      return {
-        success: false,
-        message: data?.message || `فشل تحديث حالة الطلب إلى ${state}`,
-      };
-    }
-
-    revalidatePath("/dashboard-salesmanger");
-
-    return {
-      success: true,
-      message: data?.message || `تم تحديث حالة الطلب إلى ${state} بنجاح`,
-      data: data?.data ?? data?.order,
-    };
-  } catch (err: unknown) {
-    console.error("updateSalesManagerOrderState error:", err);
-    return {
-      success: false,
-      message: "حدث خطأ أثناء تحديث حالة الطلب",
-    };
+    return { success: true, message: data?.message };
+  } catch (err) {
+    return { success: false, message: (err as Error).message || "An unexpected error occurred" };
   }
 }
 

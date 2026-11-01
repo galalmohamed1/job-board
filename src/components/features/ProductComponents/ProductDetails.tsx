@@ -30,6 +30,7 @@ import { useShop } from "@/context/ShopContext";
 import { getAllProducts, getSingelProduct } from "@/app/api/services/product.services";
 import ProductCard from "./productCart";
 import { toast } from "react-toastify";
+import { useSession } from "next-auth/react";
 
 // ==========================================
 // Props
@@ -272,8 +273,14 @@ export default function ProductDetailPage({ id, slug, initialProduct }: Props) {
     }
   };
 
+  const { status } = useSession();
+
   const handleAddToCart = async () => {
   if (!product) return;
+  if (status === 'unauthenticated') {
+    toast.info('يرجى تسجيل الدخول أولاً');
+    return;
+  }
   if (product.stock <= 0) {
     toast.error("هذا المنتج غير متوفر في المخزون حالياً");
     return;

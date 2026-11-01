@@ -24,6 +24,7 @@ import { Product } from '@/types/product';
 import { useShop } from '@/context/ShopContext';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 export default function WishlistPage() {
   const {
@@ -92,11 +93,19 @@ export default function WishlistPage() {
     await toggleWishlist(productId);
     toast.info(`تمت إزالة "${title.slice(0, 20)}..." من المفضلة`);
   };
-
+  const { status } = useSession();
   // Add single item to cart
   const handleAddToCart = async (product: Product) => {
+  // 1) لازم يكون مسجل دخول
+  if (status === 'unauthenticated') {
+    toast.info('يرجى تسجيل الدخول أولاً');
+    router.push('/login');
+    return;
+  }
+
+  // 2) باقي الكود زي ما هو
   if ((product.colors?.length ?? 0) > 0) {
-    toast.info("اختر صورة المنتج (اللون) أولاً");
+    toast.info('اختر صورة المنتج (اللون) أولاً');
     router.push(`/product/${product._id}`);
     return;
   }
@@ -107,10 +116,10 @@ export default function WishlistPage() {
     if (res) {
       toast.success(`تمت إضافة "${product.title.slice(0, 20)}" إلى السلة بنجاح`);
     } else {
-      toast.error("تعذّرت الإضافة إلى السلة");
+      toast.error('تعذّرت الإضافة إلى السلة');
     }
   } catch {
-    toast.error("حدث خطأ أثناء الإضافة إلى السلة");
+    toast.error('حدث خطأ أثناء الإضافة إلى السلة');
   } finally {
     setAddingId(null);
   }

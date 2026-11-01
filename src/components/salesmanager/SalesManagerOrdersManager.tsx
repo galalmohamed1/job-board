@@ -1,41 +1,36 @@
 'use client';
 
-import React, { useState, useMemo, useTransition } from 'react';
+import React, { useState, useMemo, useTransition, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Package,
   Search,
   Filter,
   CheckCircle2,
-  XCircle,
   Clock,
   User,
   RefreshCw,
   Eye,
   X,
-  CreditCard,
   MapPin,
-  ChevronDown,
   Loader2,
-  AlertCircle,
   Copy,
   Check,
   Truck,
-  FileText,
   Send,
-  Calendar,
-  Ban,
   ChevronRight,
   ChevronLeft,
-  Plus,
   Tag,
   Layers,
   ListTree,
   Ticket,
   ShieldCheck,
   Sparkles,
+  Bike,
+  BadgeCheck,
 } from 'lucide-react';
 import { AdminOrder, StatusHistoryItem } from '@/types/admin/adminOrders';
+import { AdminCustomer } from '@/types/admin/adminCustomer';
 import {
   getSalesManagerOrders,
   getSalesManagerOrderById,
@@ -43,7 +38,27 @@ import {
   addSalesManagerOrderNote,
   SalesManagerState,
 } from '@/action/salesmanager.action';
+// ⚠️ لو بترجع 403 للسيلز مانجر، اعمل action مخصوصة للمناديب (شوف الملاحظات)
+import { getAllUsersAdmin } from '@/action/admin.action';
 import { toast } from 'react-toastify';
+
+type OrderStatus = AdminOrder['orderStatus'];
+
+const STATUS_LABELS: Record<string, string> = {
+  Pending: 'قيد الانتظار',
+  Preparing: 'جاري التجهيز',
+  Shipped: 'تم الشحن',
+  Delivered: 'تم التوصيل',
+  Cancelled: 'ملغي',
+  Refused: 'مرفوض',
+};
+
+// نفس الانتقالات المسموحة في الباك (زي صفحة الأدمن)
+const NEXT_STATUSES: Record<string, OrderStatus[]> = {
+  Pending: ['Preparing', 'Cancelled'],
+  Preparing: ['Shipped', 'Cancelled'],
+  Shipped: ['Delivered', 'Refused'],
+};
 
 interface Props {
   initialOrders: AdminOrder[];
@@ -73,6 +88,14 @@ export default function SalesManagerOrdersManager({
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
+  // Shipping drafts (قبل التأكيد)
+  const [shippingMethodMap, setShippingMethodMap] = useState<
+    Record<string, 'Company' | 'Courier'>
+  >({});
+  const [companyNameMap, setCompanyNameMap] = useState<Record<string, string>>({});
+  const [selectedCourierMap, setSelectedCourierMap] = useState<Record<string, string>>({});
+  const [courierUsers, setCourierUsers] = useState<AdminCustomer[]>([]);
+
   // Note state
   const [newNoteText, setNewNoteText] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
@@ -80,6 +103,19 @@ export default function SalesManagerOrdersManager({
   // General loading & copy state
   const [isPending, startTransition] = useTransition();
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // ── جلب المناديب ──
+  useEffect(() => {
+    getAllUsersAdmin()
+      .then((users) => {
+        if (Array.isArray(users)) {
+          setCourierUsers(
+            users.filter((u) => String(u.role || '').toLowerCase().trim() === 'courier'),
+          );
+        }
+      })
+      .catch(() => console.error('فشل جلب قائمة المناديب'));
+  }, []);
 
   // ── Helper: Customer Info ──
   const getCustomerInfo = (order: AdminOrder) => {
@@ -114,42 +150,52 @@ export default function SalesManagerOrdersManager({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Pending':
-        return {
-          label: 'قيد الانتظار',
-          classes: 'bg-amber-50 text-amber-700 border-amber-200/60',
-        };
+        return { label: 'قيد الانتظار', classes: 'bg-amber-50 text-amber-700 border-amber-200' };
       case 'Preparing':
-        return {
-          label: 'جاري التجهيز',
-          classes: 'bg-purple-50 text-purple-700 border-purple-200/60',
-        };
+        return { label: 'جاري التجهيز', classes: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
       case 'Shipped':
-        return {
-          label: 'تم الشحن',
-          classes: 'bg-blue-50 text-blue-700 border-blue-200/60',
-        };
+        return { label: 'تم الشحن', classes: 'bg-blue-50 text-blue-700 border-blue-200' };
       case 'Delivered':
-        return {
-          label: 'تم التوصيل',
-          classes: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
-        };
+        return { label: 'تم التوصيل', classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
       case 'Refused':
-        return {
-          label: 'تم الرفض',
-          classes: 'bg-rose-50 text-rose-700 border-rose-200/60',
-        };
+        return { label: 'مرفوض', classes: 'bg-rose-50 text-rose-700 border-rose-200' };
       case 'Cancelled':
-        return {
-          label: 'ملغي',
-          classes: 'bg-red-50 text-red-700 border-red-200/60',
-        };
+        return { label: 'ملغي', classes: 'bg-red-50 text-red-700 border-red-200' };
       default:
-        return {
-          label: status,
-          classes: 'bg-slate-100 text-slate-700 border-slate-200',
-        };
+        return { label: status, classes: 'bg-slate-100 text-slate-700 border-slate-200' };
     }
   };
+
+  // ── شارة بيانات الشحن ──
+  const renderShippingInfo = (order: AdminOrder) => {
+    const s = order.shipping;
+    if (!s?.method) return null;
+
+    if (s.method === 'Courier') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-cyan-50 text-cyan-700 border border-cyan-200">
+          <Bike className="w-3 h-3" />
+          <span>{s.courierName || 'مندوب'}</span>
+          {s.courierPhone && <span dir="ltr">({s.courierPhone})</span>}
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+        <Truck className="w-3 h-3" />
+        <span>{s.companyName || 'شركة شحن'}</span>
+        {s.trackingNumber && <span dir="ltr">#{s.trackingNumber}</span>}
+      </span>
+    );
+  };
+
+  const renderPaidBadge = (order: AdminOrder) =>
+    order.isPaid ? (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+        <BadgeCheck className="w-3 h-3" />
+        مدفوع
+      </span>
+    ) : null;
 
   // ── Fetch Orders on Filter or Page Change ──
   const loadOrders = (newStatus: string, newPage: number) => {
@@ -183,28 +229,25 @@ export default function SalesManagerOrdersManager({
     loadOrders(statusFilter, newPage);
   };
 
-  // ── Frontend Search Filter by Order Number / Customer ──
+  // ── Frontend Search Filter ──
   const displayedOrders = useMemo(() => {
     if (!searchQuery.trim()) return orders;
     const q = searchQuery.toLowerCase().trim();
     return orders.filter((order) => {
       const orderNo = (order.orderNumber || order._id || '').toLowerCase();
       const { name, phone } = getCustomerInfo(order);
-      return (
-        orderNo.includes(q) ||
-        name.toLowerCase().includes(q) ||
-        phone.includes(q)
-      );
+      return orderNo.includes(q) || name.toLowerCase().includes(q) || phone.includes(q);
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orders, searchQuery]);
 
-  // ── Operational Stats Cards (NO Salary / Revenue displayed as requested) ──
+  // ── Operational Stats ──
   const orderStats = useMemo(() => {
     const preparingCount = orders.filter((o) => o.orderStatus === 'Preparing').length;
     const shippedCount = orders.filter((o) => o.orderStatus === 'Shipped').length;
     const deliveredCount = orders.filter((o) => o.orderStatus === 'Delivered').length;
     const refusedOrCancelledCount = orders.filter(
-      (o) => o.orderStatus === 'Refused' || o.orderStatus === 'Cancelled'
+      (o) => o.orderStatus === 'Refused' || o.orderStatus === 'Cancelled',
     ).length;
     const paidCount = orders.filter((o) => o.isPaid).length;
 
@@ -218,66 +261,127 @@ export default function SalesManagerOrdersManager({
     };
   }, [orders, total]);
 
-  // ── Handle State Change: {Preparing, Shipped, Delivered, Refused, Cancelled, isPaid} ──
-  const handleStateChange = async (orderId: string, newState: SalesManagerState) => {
+  // ── تحديث أوردر محلياً (الجدول + المودال) ──
+  const applyLocalUpdate = (orderId: string, patch: Partial<AdminOrder>) => {
+    setOrders((prev) => prev.map((o) => (o._id === orderId ? { ...o, ...patch } : o)));
+    setSelectedOrder((prev) => (prev && prev._id === orderId ? { ...prev, ...patch } : prev));
+  };
+
+  const clearShippingDraft = (orderId: string) => {
+    setShippingMethodMap((prev) => {
+      const next = { ...prev };
+      delete next[orderId];
+      return next;
+    });
+    setCompanyNameMap((prev) => {
+      const next = { ...prev };
+      delete next[orderId];
+      return next;
+    });
+    setSelectedCourierMap((prev) => {
+      const next = { ...prev };
+      delete next[orderId];
+      return next;
+    });
+  };
+
+  // ── تأكيد الدفع ──
+  const handleMarkPaid = async (orderId: string) => {
     setUpdatingOrderId(orderId);
     try {
-      const res = await updateSalesManagerOrderState(orderId, newState);
+      const res = await updateSalesManagerOrderState(orderId, 'isPaid');
       if (res.success) {
-        toast.success(res.message || `تم تغيير الحالة إلى ${newState} بنجاح`);
-
-        // Update local orders list state
-        setOrders((prev) =>
-          prev.map((o) => {
-            if (o._id !== orderId) return o;
-            if (newState === 'isPaid') {
-              return {
-                ...o,
-                isPaid: true,
-                paidAt: new Date().toISOString(),
-              };
-            }
-            return {
-              ...o,
-              orderStatus: newState as any,
-              statusHistory: [
-                ...(o.statusHistory || []),
-                {
-                  status: newState,
-                  note: `تم تغيير الحالة إلى ${newState} بواسطة مدير المبيعات`,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            };
-          })
-        );
-
-        // Update modal state if open
-        if (selectedOrder && selectedOrder._id === orderId) {
-          setSelectedOrder((prev) => {
-            if (!prev) return null;
-            if (newState === 'isPaid') {
-              return { ...prev, isPaid: true, paidAt: new Date().toISOString() };
-            }
-            return {
-              ...prev,
-              orderStatus: newState as any,
-              statusHistory: [
-                ...(prev.statusHistory || []),
-                {
-                  status: newState,
-                  note: `تم تغيير الحالة إلى ${newState} بواسطة مدير المبيعات`,
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            };
-          });
-        }
+        toast.success(res.message || 'تم تأكيد الدفع بنجاح');
+        applyLocalUpdate(orderId, { isPaid: true, paidAt: new Date().toISOString() });
       } else {
-        toast.error(res.message || 'فشل في تحديث حالة الطلب');
+        toast.error(res.message || 'فشل تأكيد الدفع');
       }
     } catch {
-      toast.error('حدث خطأ أثناء تحديث حالة الطلب');
+      toast.error('حدث خطأ أثناء الاتصال بالخادم');
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  // ── تغيير الحالة من القائمة ──
+  const handleStatusChange = async (order: AdminOrder, rawValue: string) => {
+    const orderId = order._id;
+
+    if (rawValue === 'PAID') {
+      await handleMarkPaid(orderId);
+      return;
+    }
+
+    // الشحن: ما نبعتش للسيرفر قبل ما يتحدد المندوب أو الشركة
+    if (rawValue === 'Shipped:Company' || rawValue === 'Shipped:Courier') {
+      setShippingMethodMap((prev) => ({
+        ...prev,
+        [orderId]: rawValue === 'Shipped:Company' ? 'Company' : 'Courier',
+      }));
+      return;
+    }
+
+    if (rawValue === order.orderStatus) {
+      clearShippingDraft(orderId);
+      return;
+    }
+
+    const newStatus = rawValue as OrderStatus;
+    clearShippingDraft(orderId);
+    setUpdatingOrderId(orderId);
+    try {
+      const res = await updateSalesManagerOrderState(orderId, newStatus as SalesManagerState);
+      if (res.success) {
+        toast.success(`تم تحديث حالة الطلب إلى "${STATUS_LABELS[newStatus]}" بنجاح`);
+        applyLocalUpdate(orderId, { orderStatus: newStatus });
+      } else {
+        toast.error(res.message || 'فشل تحديث الحالة');
+      }
+    } catch {
+      toast.error('حدث خطأ أثناء الاتصال بالخادم');
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
+  // ── تأكيد الشحن (شركة / مندوب) ──
+  const handleShipConfirm = async (orderId: string, method: 'Company' | 'Courier') => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let shipping: any;
+
+    if (method === 'Company') {
+      const companyName = companyNameMap[orderId]?.trim();
+      if (!companyName) {
+        toast.warn('يرجى إدخال اسم شركة الشحن أولاً');
+        return;
+      }
+      shipping = { method: 'Company', companyName };
+    } else {
+      const courierId = selectedCourierMap[orderId]?.trim();
+      if (!courierId) {
+        toast.warn('يرجى اختيار مندوب التوصيل أولاً');
+        return;
+      }
+      const c = courierUsers.find((u) => u._id === courierId);
+      shipping = {
+        method: 'Courier',
+        courierName: c?.fullName || c?.name || 'مندوب التوصيل',
+        courierPhone: c?.phoneNumber || c?.phone,
+      };
+    }
+
+    setUpdatingOrderId(orderId);
+    try {
+      const res = await updateSalesManagerOrderState(orderId, 'Shipped', { shipping });
+      if (res.success) {
+        toast.success('تم الشحن بنجاح');
+        applyLocalUpdate(orderId, { orderStatus: 'Shipped', shipping });
+        clearShippingDraft(orderId);
+      } else {
+        toast.error(res.message || 'فشل تحديث الحالة');
+      }
+    } catch {
+      toast.error('حدث خطأ أثناء الاتصال بالخادم');
     } finally {
       setUpdatingOrderId(null);
     }
@@ -310,7 +414,7 @@ export default function SalesManagerOrdersManager({
         const newNoteItem: StatusHistoryItem = {
           status: selectedOrder.orderStatus,
           note: newNoteText.trim(),
-          createdAt: new Date().toISOString(),
+          changedAt: new Date().toISOString(),
           changedBy: 'مدير المبيعات',
         };
 
@@ -318,16 +422,12 @@ export default function SalesManagerOrdersManager({
           prev
             ? {
                 ...prev,
-                statusHistory: [...(prev.statusHistory || []), newNoteItem],
-                notes: [
-                  ...(prev.notes || []),
-                  {
-                    text: newNoteText.trim(),
-                    createdAt: new Date().toISOString(),
-                  },
-                ],
+                statusHistory: [
+                  ...(prev.statusHistory || []),
+                  newNoteItem,
+                ] as AdminOrder['statusHistory'],
               }
-            : null
+            : null,
         );
 
         setNewNoteText('');
@@ -436,7 +536,7 @@ export default function SalesManagerOrdersManager({
         </div>
       </div>
 
-      {/* ── Operational Stats Grid (Notice: Absolutely NO total of Salary) ── */}
+      {/* ── Operational Stats Grid ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-[11px] font-bold text-slate-500 block">إجمالي الطلبات</span>
@@ -484,7 +584,6 @@ export default function SalesManagerOrdersManager({
       {/* ── Search & Filter Bar ── */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Search Input */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
             <input
@@ -496,7 +595,6 @@ export default function SalesManagerOrdersManager({
             />
           </div>
 
-          {/* Status Filter */}
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-slate-400" />
             <select
@@ -505,17 +603,15 @@ export default function SalesManagerOrdersManager({
               className="px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#D49B35] cursor-pointer"
             >
               <option value="all">كل الحالات (الكل)</option>
-              <option value="Pending">قيد الانتظار (Pending)</option>
-              <option value="Preparing">جاري التجهيز (Preparing)</option>
-              <option value="Shipped">تم الشحن (Shipped)</option>
-              <option value="Delivered">تم التوصيل (Delivered)</option>
-              <option value="Refused">تم الرفض (Refused)</option>
-              <option value="Cancelled">ملغي (Cancelled)</option>
+              {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label} ({key})
+                </option>
+              ))}
             </select>
           </div>
         </div>
 
-        {/* Counter and Filter Reset */}
         <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
           <span>
             عرض <strong className="text-slate-900">{displayedOrders.length}</strong> من إجمالي{' '}
@@ -563,11 +659,8 @@ export default function SalesManagerOrdersManager({
                   <th className="py-3.5 px-4">العميل</th>
                   <th className="py-3.5 px-4">التاريخ</th>
                   <th className="py-3.5 px-4">الإجمالي</th>
-                  <th className="py-3.5 px-4 text-center">حالة الأوردر</th>
+                  <th className="py-3.5 px-4">حالة الطلب</th>
                   <th className="py-3.5 px-4 text-center">حالة الدفع</th>
-                  <th className="py-3.5 px-4 text-center">
-                    تغيير الحالة (State Changer)
-                  </th>
                   <th className="py-3.5 px-4 text-center">التفاصيل</th>
                 </tr>
               </thead>
@@ -578,6 +671,14 @@ export default function SalesManagerOrdersManager({
                   const amount = order.finalPrice ?? order.totalPrice ?? 0;
                   const statusBadge = getStatusBadge(order.orderStatus);
                   const isUpdatingThis = updatingOrderId === order._id;
+
+                  const pendingMethod = shippingMethodMap[order._id];
+                  const nextStatuses = NEXT_STATUSES[order.orderStatus] ?? [];
+                  const canPay =
+                    !order.isPaid &&
+                    order.orderStatus !== 'Cancelled' &&
+                    order.orderStatus !== 'Refused';
+                  const isFinal = nextStatuses.length === 0 && !canPay;
 
                   return (
                     <tr
@@ -590,9 +691,7 @@ export default function SalesManagerOrdersManager({
                           <span>#{shortId}</span>
                           <button
                             type="button"
-                            onClick={() =>
-                              handleCopy(order.orderNumber || order._id, order._id)
-                            }
+                            onClick={() => handleCopy(order.orderNumber || order._id, order._id)}
                             className="text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
                             title="نسخ رقم الطلب"
                           >
@@ -640,13 +739,136 @@ export default function SalesManagerOrdersManager({
                         </div>
                       </td>
 
-                      {/* Current Order Status */}
-                      <td className="py-3.5 px-4 text-center">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold border ${statusBadge.classes}`}
-                        >
-                          {statusBadge.label}
-                        </span>
+                      {/* ── الحالة (زي صفحة الأدمن) ── */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2">
+                            <select
+                              disabled={isUpdatingThis || isFinal}
+                              value={
+                                pendingMethod ? `Shipped:${pendingMethod}` : order.orderStatus
+                              }
+                              onChange={(e) => handleStatusChange(order, e.target.value)}
+                              className={`px-2.5 py-1 rounded-xl text-xs font-bold border outline-none cursor-pointer transition-all disabled:cursor-default ${statusBadge.classes}`}
+                            >
+                              {/* الحالة الحالية (ثابتة) */}
+                              <option value={order.orderStatus}>
+                                {STATUS_LABELS[order.orderStatus] ?? order.orderStatus}
+                              </option>
+
+                              {/* الحالات المسموحة */}
+                              {nextStatuses.map((s) =>
+                                s === 'Shipped' ? (
+                                  <React.Fragment key="shipped-options">
+                                    <option value="Shipped:Company">
+                                      تم الشحن - شركة شحن 🏢
+                                    </option>
+                                    <option value="Shipped:Courier">تم الشحن - مندوب 🛵</option>
+                                  </React.Fragment>
+                                ) : (
+                                  <option key={s} value={s}>
+                                    {STATUS_LABELS[s]}
+                                  </option>
+                                ),
+                              )}
+
+                              {/* تأكيد الدفع */}
+                              {canPay && <option value="PAID">تم الدفع 💰</option>}
+                            </select>
+                            {isUpdatingThis && (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D49B35]" />
+                            )}
+                          </div>
+
+                          {/* شارات ثابتة: الشحن + الدفع */}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {renderShippingInfo(order)}
+                            {renderPaidBadge(order)}
+                          </div>
+
+                          {/* اسم شركة الشحن */}
+                          {pendingMethod === 'Company' && (
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <input
+                                type="text"
+                                placeholder="اسم شركة الشحن..."
+                                value={companyNameMap[order._id] || ''}
+                                onChange={(e) =>
+                                  setCompanyNameMap((prev) => ({
+                                    ...prev,
+                                    [order._id]: e.target.value,
+                                  }))
+                                }
+                                className="flex-1 min-w-0 h-7 px-2.5 rounded-lg border border-blue-200 bg-blue-50/50 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-[#D49B35]"
+                              />
+                              <button
+                                type="button"
+                                disabled={isUpdatingThis || !companyNameMap[order._id]?.trim()}
+                                onClick={() => handleShipConfirm(order._id, 'Company')}
+                                className="h-7 px-2.5 rounded-lg bg-[#08101E] hover:bg-[#1a273e] text-white text-[11px] font-bold whitespace-nowrap cursor-pointer transition-all disabled:opacity-50"
+                              >
+                                تأكيد
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => clearShippingDraft(order._id)}
+                                className="h-7 px-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-500 cursor-pointer flex items-center justify-center"
+                                title="إلغاء"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+
+                          {/* اختيار المندوب */}
+                          {pendingMethod === 'Courier' && (
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <select
+                                value={selectedCourierMap[order._id] || ''}
+                                onChange={(e) =>
+                                  setSelectedCourierMap((prev) => ({
+                                    ...prev,
+                                    [order._id]: e.target.value,
+                                  }))
+                                }
+                                className="flex-1 min-w-0 h-7 px-2 rounded-lg border border-cyan-300 bg-cyan-50/70 text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-cyan-500 cursor-pointer"
+                              >
+                                <option value="">اختر المندوب...</option>
+                                {courierUsers.length > 0 ? (
+                                  courierUsers.map((c) => {
+                                    const cName = c.fullName || c.name || c.email || 'مندوب';
+                                    const cPhone = c.phoneNumber || c.phone;
+                                    return (
+                                      <option key={c._id} value={c._id}>
+                                        🛵 {cName} {cPhone ? `(${cPhone})` : ''}
+                                      </option>
+                                    );
+                                  })
+                                ) : (
+                                  <option value="" disabled>
+                                    لا يوجد مناديب مسجلين
+                                  </option>
+                                )}
+                              </select>
+                              <button
+                                type="button"
+                                disabled={isUpdatingThis || !selectedCourierMap[order._id]}
+                                onClick={() => handleShipConfirm(order._id, 'Courier')}
+                                className="h-7 px-2.5 rounded-lg bg-cyan-800 hover:bg-cyan-900 text-white text-[11px] font-bold whitespace-nowrap cursor-pointer transition-all disabled:opacity-50"
+                              >
+                                تأكيد
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => clearShippingDraft(order._id)}
+                                className="h-7 px-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-500 cursor-pointer flex items-center justify-center"
+                                title="إلغاء"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* Current Payment Status */}
@@ -662,54 +884,6 @@ export default function SalesManagerOrdersManager({
                             <span>غير مدفوع</span>
                           </span>
                         )}
-                      </td>
-
-                      {/* ── State Changer Dropdown: {Preparing, Shipped, Delivered, Refused, Cancelled, isPaid} ── */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="relative inline-block text-right">
-                          {isUpdatingThis ? (
-                            <div className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold">
-                              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#D49B35]" />
-                              <span>جاري التحديث...</span>
-                            </div>
-                          ) : (
-                            <select
-                              defaultValue=""
-                              onChange={(e) => {
-                                const val = e.target.value as SalesManagerState;
-                                if (val) {
-                                  handleStateChange(order._id, val);
-                                  e.target.value = '';
-                                }
-                              }}
-                              className="px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:border-[#D49B35] text-slate-800 text-xs font-bold shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#D49B35] cursor-pointer transition-colors"
-                            >
-                              <option value="" disabled>
-                                تغيير الحالة ▼
-                              </option>
-                              <option value="Preparing" className="text-purple-700 font-bold">
-                                ⚙️ Preparing (جاري التجهيز)
-                              </option>
-                              <option value="Shipped" className="text-blue-700 font-bold">
-                                🚚 Shipped (تم الشحن)
-                              </option>
-                              <option value="Delivered" className="text-emerald-700 font-bold">
-                                ✓ Delivered (تم التوصيل)
-                              </option>
-                              <option value="Refused" className="text-rose-700 font-bold">
-                                ✗ Refused (تم الرفض)
-                              </option>
-                              <option value="Cancelled" className="text-red-700 font-bold">
-                                ⛔ Cancelled (إلغاء الطلب)
-                              </option>
-                              {!order.isPaid && (
-                                <option value="isPaid" className="text-amber-700 font-black">
-                                  💳 isPaid (تأكيد الدفع)
-                                </option>
-                              )}
-                            </select>
-                          )}
-                        </div>
                       </td>
 
                       {/* View Details Action */}
@@ -808,41 +982,6 @@ export default function SalesManagerOrdersManager({
                 </div>
               ) : (
                 <>
-                  {/* Quick State Update from Inside Modal */}
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div>
-                      <span className="text-xs font-black text-slate-800 block">
-                        تحديث حالة الطلب السريع:
-                      </span>
-                      <span className="text-[11px] text-slate-500">
-                        يمكنك تغيير الحالة مباشرة وحفظها فورياً
-                      </span>
-                    </div>
-                    <select
-                      defaultValue=""
-                      onChange={(e) => {
-                        const val = e.target.value as SalesManagerState;
-                        if (val) {
-                          handleStateChange(selectedOrder._id, val);
-                          e.target.value = '';
-                        }
-                      }}
-                      className="px-3.5 py-2 rounded-xl border border-slate-300 bg-white font-bold text-xs text-slate-800 shadow-xs focus:ring-2 focus:ring-[#D49B35] cursor-pointer"
-                    >
-                      <option value="" disabled>
-                        اختر حالة جديدة ▼
-                      </option>
-                      <option value="Preparing">⚙️ Preparing (جاري التجهيز)</option>
-                      <option value="Shipped">🚚 Shipped (تم الشحن)</option>
-                      <option value="Delivered">✓ Delivered (تم التوصيل)</option>
-                      <option value="Refused">✗ Refused (تم الرفض)</option>
-                      <option value="Cancelled">⛔ Cancelled (إلغاء الطلب)</option>
-                      {!selectedOrder.isPaid && (
-                        <option value="isPaid">💳 isPaid (تأكيد الدفع)</option>
-                      )}
-                    </select>
-                  </div>
-
                   {/* Customer & Shipping Details */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
@@ -894,6 +1033,17 @@ export default function SalesManagerOrdersManager({
                     </div>
                   </div>
 
+                  {/* بيانات الشحن */}
+                  {selectedOrder.shipping?.method && (
+                    <div className="p-4 rounded-2xl border border-blue-200 bg-blue-50/50 text-xs text-slate-700">
+                      <h5 className="text-xs font-black text-blue-700 mb-2 flex items-center gap-1.5">
+                        <Truck className="w-4 h-4" />
+                        <span>بيانات الشحن</span>
+                      </h5>
+                      {renderShippingInfo(selectedOrder)}
+                    </div>
+                  )}
+
                   {/* Order Items */}
                   <div>
                     <h4 className="text-xs font-black text-slate-800 mb-3 flex items-center gap-1.5">
@@ -903,7 +1053,6 @@ export default function SalesManagerOrdersManager({
                     <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
                       {selectedOrder.items?.map((item, idx) => {
                         const title =
-                          item.name ||
                           item.title ||
                           (typeof item.product === 'object' && item.product?.title) ||
                           'منتج';
@@ -926,9 +1075,7 @@ export default function SalesManagerOrdersManager({
                               </div>
                             </div>
                             <div className="text-left font-black text-slate-900">
-                              {(
-                                (item.price || 0) * (item.quantity || 1)
-                              ).toLocaleString('en-US')}{' '}
+                              {((item.price || 0) * (item.quantity || 1)).toLocaleString('en-US')}{' '}
                               ج.م
                             </div>
                           </div>
@@ -942,7 +1089,9 @@ export default function SalesManagerOrdersManager({
                     <div>
                       <span className="text-slate-500 block">طريقة الدفع:</span>
                       <span className="font-bold text-slate-800">
-                        {selectedOrder.paymentMethod || 'الدفع عند الاستلام'}
+                        {selectedOrder.paymentMethod === 'CashOnDelivery'
+                          ? 'الدفع عند الاستلام (COD)'
+                          : selectedOrder.paymentMethod || 'الدفع عند الاستلام'}
                       </span>
                     </div>
                     <div>
@@ -958,11 +1107,9 @@ export default function SalesManagerOrdersManager({
                     <div className="text-left">
                       <span className="text-slate-500 block">المبلغ الإجمالي:</span>
                       <span className="text-base font-black text-slate-900">
-                        {(
-                          selectedOrder.finalPrice ??
-                          selectedOrder.totalPrice ??
-                          0
-                        ).toLocaleString('en-US')}{' '}
+                        {(selectedOrder.finalPrice ?? selectedOrder.totalPrice ?? 0).toLocaleString(
+                          'en-US',
+                        )}{' '}
                         ج.م
                       </span>
                     </div>
@@ -975,8 +1122,7 @@ export default function SalesManagerOrdersManager({
                       <span>سجل الحالات والملاحظات</span>
                     </h4>
                     <div className="space-y-2 bg-slate-50 p-3 rounded-2xl border border-slate-200 max-h-48 overflow-y-auto">
-                      {selectedOrder.statusHistory &&
-                      selectedOrder.statusHistory.length > 0 ? (
+                      {selectedOrder.statusHistory && selectedOrder.statusHistory.length > 0 ? (
                         selectedOrder.statusHistory.map((item, idx) => (
                           <div
                             key={idx}
@@ -984,17 +1130,15 @@ export default function SalesManagerOrdersManager({
                           >
                             <div className="flex items-center justify-between mb-1">
                               <span className="font-black text-slate-800">
-                                {item.status}
+                                {STATUS_LABELS[item.status] ?? item.status}
                               </span>
                               <span className="text-[10px] text-slate-400 font-mono">
-                                {item.createdAt
-                                  ? new Date(item.createdAt).toLocaleString('ar-EG')
+                                {item.changedAt
+                                  ? new Date(item.changedAt).toLocaleString('ar-EG')
                                   : ''}
                               </span>
                             </div>
-                            {item.note && (
-                              <p className="text-slate-600 text-[11px]">{item.note}</p>
-                            )}
+                            {item.note && <p className="text-slate-600 text-[11px]">{item.note}</p>}
                           </div>
                         ))
                       ) : (

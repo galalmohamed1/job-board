@@ -13,6 +13,7 @@ import {
   ListTree,
   Ticket,
   ClipboardList,
+  Users,
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 
@@ -56,6 +57,11 @@ export default function DashboardSalesManagerLayout({
       href: '/dashboard-salesmanger/coupons',
       icon: Ticket,
     },
+    {
+        label: 'المستخدمين',
+        href: '/dashboard-salesmanger/users',
+        icon: Users,
+      },
   ];
 
   const isActive = (item: { href: string; exact?: boolean }) => {

@@ -21,6 +21,7 @@ import {
 import Link from 'next/link';
 import { toast } from 'react-toastify';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 /* ─── Constants ─────────────────────────────────────────────────── */
 const ALL_SUBS = 'الكل';
@@ -300,6 +301,7 @@ export default function ProductPage() {
     setMinRating(0);
     setCurrentPage(1);
   };
+  const { status } = useSession();
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] font-['Cairo'] text-right">
@@ -574,6 +576,10 @@ export default function ProductPage() {
                       <button
                         type="button"
                         onClick={async () => {
+                          if (status === 'unauthenticated') {
+                              toast.info('يرجى تسجيل الدخول أولاً');
+                              return;
+                            }
                           const needsOptions =
                             (product.colors?.length ?? 0) > 0 || (product.sizes?.length ?? 0) > 0;
 
