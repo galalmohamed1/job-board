@@ -15,7 +15,7 @@ import { getAccessToken } from "@/utilities/utilite";
 
 const BASE =
   process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-omega.vercel.app/api";
-export type StaffRole = "accountant" | "warehouse" | "sales" | "salesManager" | "courier";
+export type StaffRole = "accountant" | "warehouse" | "sales" | "salesManager" | "courier" |"shippingCompany";
 // ─────────────────────────────────────────────────────────────────────────────
 // PRODUCTS
 // ─────────────────────────────────────────────────────────────────────────────
@@ -599,6 +599,8 @@ export async function createStaffAccount(body: {
   email: string;
   password: string;
   phone?: string;
+  salary: number;
+  commissionRate: number;
   role: StaffRole;
 }): Promise<{ success: boolean; message?: string }> {
   try {

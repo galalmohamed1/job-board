@@ -4,6 +4,8 @@ import {
   getAccountantAccounts,
 } from '@/action/accountant.action';
 
+export const instant = false;
+
 export const metadata = {
   title: 'دفتر الحسابات والمالية | لوحة المحاسب',
   description: 'عرض كافة الحسابات والتعاملات المالية لسوق حورس',

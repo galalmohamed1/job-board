@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ShoppingCart,
@@ -39,29 +39,53 @@ export default function Navbar() {
   const pathname = usePathname();
   const { cartCount, wishlistCount } = useShop();
   const [isCampaignsOpen, setIsCampaignsOpen] = useState(false);
-  
+  const campaignsRef = useRef<HTMLDivElement>(null);
+
+useEffect(() => {
+  if (!isCampaignsOpen) return;
+
+  const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+    if (campaignsRef.current && !campaignsRef.current.contains(e.target as Node)) {
+      setIsCampaignsOpen(false);
+    }
+  };
+
+  const handleEscape = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') setIsCampaignsOpen(false);
+  };
+
+  document.addEventListener('mousedown', handleClickOutside);
+  document.addEventListener('touchstart', handleClickOutside);
+  document.addEventListener('keydown', handleEscape);
+
+  return () => {
+    document.removeEventListener('mousedown', handleClickOutside);
+    document.removeEventListener('touchstart', handleClickOutside);
+    document.removeEventListener('keydown', handleEscape);
+  };
+}, [isCampaignsOpen]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const campaignItems = [
-    { title: 'الحملات الانتخابية', icon: Vote, href: '/#elections' },
+    { title: 'الحملات التسويقيه', icon: Vote, href: '/marketing' },
     { title: 'الحملات الإعلانية', icon: Megaphone, href: '/#advertising' },
-    { title: 'الحملات التسويقية', icon: TrendingUp, href: '/#marketing-camp' },
-    { title: 'حملات العلاقات والتوعية', icon: Users, href: '/#awareness' },
+    { title: 'الحملات التوعيه', icon: Users, href: '/#awareness' },
   ];
 
   const navLinkBefore = [
     { title: 'الرئيسية', href: '/' },
-    { title: 'المنتجات', href: '/product' },
-    { title: 'التسويق', href: '/marketing' },
+    { title: 'المتجر', href: '/product' },
     { title: 'العقارات', href: '/realstate' },
+    
   ];
 
   const navLinkAfter = [
     { title: 'الخدمات المهنية', href: '/#legal' },
     { title: 'الشركاء والموردون', href: '/#partners' },
     { title: 'المدونات', href: '/#blog' },
-    { title: 'من نحن', href: '/#about' },
-    { title: 'تواصل معنا', href: '/#contact' },
+    { title: 'من نحن', href: '/about' },
+    { title: 'تواصل معنا', href: '/contact' },
+    { title: 'انضم الينا',href: '/join' },
   ];
 
   const isActive = (href: string) => {
@@ -321,13 +345,13 @@ export default function Navbar() {
                 ))}
 
               {/* Promotional Campaigns with Dropdown */}
-              <div className="relative">
+              <div className="relative" ref={campaignsRef}>
                 <button
                   type="button"
                   onClick={() => setIsCampaignsOpen(!isCampaignsOpen)}
                   className="flex items-center gap-1.5 py-1 text-slate-300 hover:text-gold-light transition-colors cursor-pointer group"
                 >
-                  <span className="font-semibold">الحملات الدعائية</span>
+                  <span className="font-semibold">التسويق</span>
                   <ChevronDown
                     className={`w-3.5 h-3.5 text-gold-light transition-transform duration-200 ${
                       isCampaignsOpen ? 'rotate-180' : ''

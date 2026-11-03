@@ -12,7 +12,7 @@ const STAFF_ROLES = [
 // كل دور وداشبورده
 const ROLE_HOME: Record<string, string> = {
   admin: "/dashboard",
-  accountant: "/dashboard-accountant",
+  accountant: "/dashboard-account",
   warehouse: "/dashboard-warehouse",
   sales: "/dashboard-sales",
   salesManager: "/dashboard-salesmanger",
@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
   const isStaff = !!role && STAFF_ROLES.includes(role); // admin / accountant / warehouse
   const staffHome = ROLE_HOME[role ?? ""]; // داشبورد الموظف (بيتستخدم لو isStaff بس)
 
-  // بيطابق كل الداشبوردات (/dashboard و /dashboard-accountant و /dashboard-warehouse)
+  // بيطابق كل الداشبوردات (/dashboard و /dashboard-account و /dashboard-warehouse)
   const isDashboardRoute = pathname.startsWith("/dashboard");
 
   // حماية خاصة لمسار /dashboard-sales: متاح لدور sales فقط
@@ -63,7 +63,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // هل الموظف جوه الداشبورد بتاعه هو؟ (بدون ما /dashboard يطابق /dashboard-accountant)
+  // هل الموظف جوه الداشبورد بتاعه هو؟ (بدون ما /dashboard يطابق /dashboard-account)
   const isOwnDashboard =
     isStaff && (pathname === staffHome || pathname.startsWith(`${staffHome}/`));
 

@@ -22,6 +22,8 @@ import {
   Filter,
   Copy,
   Check,
+  Bike,
+  Car,
 } from 'lucide-react';
 import { AdminCustomer } from '@/types/admin/adminCustomer';
 import { getAllUsersAdmin } from '@/action/admin.action';
@@ -90,7 +92,9 @@ export default function UsersManager({ initialUsers }: Props) {
         u.role === 'accountant' ||
         u.role === 'warehouse' ||
         u.role === 'sales' ||
-        u.role === 'salesManager'
+        u.role === 'salesManager' ||
+        u.role === 'courier'||
+        u.role === 'shippingCompany'
     ).length;
     const customers = users.filter((u) => !u.role || u.role === 'user').length;
     const active = users.filter((u) => u.isActive !== false).length;
@@ -130,6 +134,18 @@ export default function UsersManager({ initialUsers }: Props) {
           label: 'مسؤول مستودع',
           bg: 'bg-amber-50 text-amber-700 border-amber-200',
           icon: Store,
+        };
+      case 'shippingCompany':
+        return {
+          label: 'شركه شحن',
+          bg: 'bg-amber-50 text-amber-700 border-amber-200',
+          icon: Car,
+        };
+      case 'courier':
+        return {
+          label: 'مندوب',
+          bg: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+          icon: Bike,
         };
       case 'user':
       default:

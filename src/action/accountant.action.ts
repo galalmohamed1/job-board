@@ -7,7 +7,8 @@ import { getAllUsersAdmin } from "./admin.action";
 
 import { markOrderPaid } from "./order.action";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const BASE =
+  process.env.NEXT_PUBLIC_BASE_URL || "https://tasweeq-omega.vercel.app/api";
 
 /**
  * Fetch all orders for accountant dashboard
@@ -15,19 +16,39 @@ const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 export async function getAccountantOrders(): Promise<AdminOrder[]> {
   try {
     const token = await getAccessToken();
-    const cleanBase = BASE.replace(/\/api\/?$/, "");
-    const res = await fetch(`${cleanBase}/api/orders`, {
-      headers: { Authorization: `Bearer ${token}` },
+    if (!token) return [];
+
+    const cleanBase = BASE.replace(/\/+$/, "");
+    const res = await fetch(`${cleanBase}/orders`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       cache: "no-store",
     });
+
     const data = await res.json().catch(() => null);
-    if (!res.ok) {
+
+    if (!res.ok || data?.success === false) {
       console.error("Failed to fetch orders for accountant:", res.status, data);
       return [];
     }
-    if (data && Array.isArray(data.data)) return data.data;
-    if (data && Array.isArray(data.orders)) return data.orders;
+
+    // الشكل: { data: { orders: [...] } }
+    if (
+      data?.data &&
+      !Array.isArray(data.data) &&
+      Array.isArray(data.data.orders)
+    ) {
+      return data.data.orders;
+    }
+    // الشكل: { data: [...] }
+    if (Array.isArray(data?.data)) return data.data;
+    // الشكل: { orders: [...] }
+    if (Array.isArray(data?.orders)) return data.orders;
+    // الشكل: [...]
     if (Array.isArray(data)) return data;
+
     return [];
   } catch (err) {
     console.error("Error getAccountantOrders:", err);

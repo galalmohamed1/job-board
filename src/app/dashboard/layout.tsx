@@ -23,6 +23,7 @@ import {
   ShoppingBag,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
+import { FaFileExcel } from 'react-icons/fa';
 
 const navItems = [
   {
@@ -70,6 +71,11 @@ const navItems = [
     label: 'إنشاء حساب',
     href: '/dashboard/create-account',
     icon: UserPlus,
+  },
+  {
+    label: 'التقارير',
+    href: '/dashboard/reports',
+    icon: FaFileExcel,
   },
 ];
 

@@ -28,9 +28,12 @@ export default function DashboardAccountLayout({
   const isAccountsActive =
     pathname === '/dashboard-account/accounts' ||
     pathname.startsWith('/dashboard-account/accounts');
+  const isReportsActive =
+    pathname === '/dashboard-account/reports' ||
+    pathname.startsWith('/dashboard-account/reports');
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-['Cairo'] text-right flex flex-col" dir="rtl">
+    <div className="min-h-screen bg-[#F8FAFC] font-['Cairo'] text-right flex flex-col">
       {/* ── Top Navigation Bar ── */}
       <header className="sticky top-0 z-40 bg-[#0B2545] text-white border-b border-[#1D2A44] shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -78,6 +81,17 @@ export default function DashboardAccountLayout({
               >
                 <Wallet className="w-4 h-4" />
                 <span>الحسابات المالية (Accounts)</span>
+              </Link>
+              <Link
+                href="/dashboard-account/reports"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                  isReportsActive
+                    ? 'bg-linear-to-r from-[#F3C053] to-[#D49B35] text-[#0B2545] shadow-md font-black'
+                    : 'text-slate-300 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Wallet className="w-4 h-4" />
+                <span>التقارير (Reports)</span>
               </Link>
             </nav>
 
